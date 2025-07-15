@@ -121,7 +121,7 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
     virtualNetworkSubnetId: resourceId('Microsoft.Network/VirtualNetworks/subnets', vnetName, faSubnetName)
     httpsOnly: true
     siteConfig: {
-      minTlsVersion: '1.2'
+      minTlsVersion: '1.3'
       netFrameworkVersion: functionAppRuntimeVersion
       ftpsState: 'Disabled'
       http20Enabled: true
@@ -159,7 +159,7 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
       scmIpSecurityRestrictionsUseMain: false
     }
     clientCertEnabled: true
-    clientCertMode: 'OptionalInteractiveUser'
+    clientCertMode: 'Optional'
   }
   resource functionAppConfig 'config' = {
     name: 'appsettings'
