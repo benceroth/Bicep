@@ -49,6 +49,26 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2024-01-01' = {
   }
 }
 
+resource diagnosticsStorage 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  scope: storageAccount
+  name: storageAccountName
+  properties: {
+    workspaceId: logWorkspace.id
+    metrics: [
+      {
+        category: 'Transaction'
+        enabled: true
+      }
+    ]
+  }
+}
+
+resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2021-06-01' = {
+  parent: storageAccount
+  name: 'default'
+  properties: {}
+}
+
 resource storageAccountPrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' = {
   name: 'pe-${storageAccountName}'
   location: resourceGroup().location
@@ -118,26 +138,6 @@ resource pvtEndpointDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneG
   }
 }
 
-resource diagnosticsStorage 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
-  scope: storageAccount
-  name: storageAccountName
-  properties: {
-    workspaceId: logWorkspace.id
-    metrics: [
-      {
-        category: 'Transaction'
-        enabled: true
-      }
-    ]
-  }
-}
-
-resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2021-06-01' = {
-  parent: storageAccount
-  name: 'default'
-  properties: {}
-}
-
 resource diagnosticsBlob 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
   scope: blobService
   name: storageAccountName
@@ -196,6 +196,75 @@ resource tableService 'Microsoft.Storage/storageAccounts/tableServices@2021-06-0
   parent: storageAccount
   name: 'default'
   properties: {}
+}
+
+resource storageAccountTablePrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' = {
+  name: 'pe-${storageAccountName}-table'
+  location: resourceGroup().location
+  properties: {
+    subnet: {
+      id: resourceId('Microsoft.Network/VirtualNetworks/subnets', vnetName, peSubnetName)
+    }
+    privateLinkServiceConnections: [
+      {
+        name: 'pe-${storageAccountName}-table'
+        properties: {
+          privateLinkServiceId: storageAccount.id
+          groupIds: [
+            'table'
+          ]
+        }
+      }
+    ]
+  }
+  tags: {
+    Project: projectName
+    Environment: environmentName
+  }
+}
+
+resource storageAccountTablePrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+  name: 'privatelink.table.${environment().suffixes.storage}'
+  location: 'global'
+  properties: {}
+  dependsOn: [
+    virtualNetwork
+  ]
+  tags: {
+    Project: projectName
+    Environment: environmentName
+  }
+}
+
+resource storageAccountTablePrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+  parent: storageAccountTablePrivateDnsZone
+  name: 'pdz-${storageAccountName}-table-link'
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: virtualNetwork.id
+    }
+  }
+  tags: {
+    Project: projectName
+    Environment: environmentName
+  }
+}
+
+resource pvtEndpointTableDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2021-05-01' = {
+  parent: storageAccountTablePrivateEndpoint
+  name: 'pdzg-${storageAccountName}-table'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'config1'
+        properties: {
+          privateDnsZoneId: storageAccountTablePrivateDnsZone.id
+        }
+      }
+    ]
+  }
 }
 
 resource diagnosticsTable 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {

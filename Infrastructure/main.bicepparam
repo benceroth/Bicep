@@ -24,6 +24,11 @@ param keyVaultName = 'kv-${projectName}'
 param logWorkspaceName = 'law-${projectName}'
 param storageAccountName = 'st${projectName}'
 
+// App service Easy auth configuration, when empty it is turned off. Recommendation: overwrite these params in pipelines, cmd
+param authClientId = ''
+@secure()
+param authClientSecret = '' 
+
 // Sample application environment settings
 param functionAppSettings = {
   'KeyVaultConfig:Name': keyVaultName

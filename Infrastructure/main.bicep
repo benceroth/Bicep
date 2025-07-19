@@ -24,6 +24,11 @@ param storageAccountName string
 
 param functionAppSettings object
 
+param authClientId string
+@secure()
+param authClientSecret string
+
+
 module networkModule 'network.bicep' = {
   name: 'network'
   params: {
@@ -127,6 +132,8 @@ module netappModule 'Apps/dotnet-appservice-portal.bicep' = {
     projectName: projectName
     vnetName: vnetName
     webSubnetName: webSubnetName
+    authClientId: authClientId
+    authClientSecret: authClientSecret
   }
   dependsOn: [networkModule, storageModule, logModule, vaultModule]
 }

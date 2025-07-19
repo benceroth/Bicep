@@ -9,6 +9,10 @@ param appRuntimeVersion string
 param keyVaultName string
 param logWorkspaceName string
 
+param authClientId string
+@secure()
+param authClientSecret string
+
 var appServiceName = 'app-${appName}'
 var appinsightsName = 'appi-${appName}'
 var keyVaultReaderRoleId = '21090545-7ca7-4776-b22c-e363652d74d2'
@@ -120,11 +124,42 @@ resource appService 'Microsoft.Web/sites@2024-04-01' = {
       XDT_MicrosoftApplicationInsights_BaseExtension: 'disabled'
       XDT_MicrosoftApplicationInsights_Mode: 'recommended'
       WEBSITE_RUN_FROM_PACKAGE: '1'
+      ENTRAID_AUTH_AAD_SECRET: authClientSecret // for EntraId Easy auth
+      WEBSITE_AUTH_AAD_ALLOWED_TENANTS: tenant().tenantId // for multi-tenant applications leverage param here
     }
   }
   tags: {
     Project: projectName
     Environment: environmentName
+  }
+}
+
+
+resource authSettings 'Microsoft.Web/sites/config@2024-11-01' = if(!empty(authClientId) && !empty(authClientSecret)) {
+  parent: appService
+  name: 'authsettingsV2'
+  properties: {
+    globalValidation: {
+      requireAuthentication: true
+      unauthenticatedClientAction: 'RedirectToLoginPage' // for APIs switch to 'Return401'
+    }
+    platform: {
+      enabled: true
+      runtimeVersion: '2'
+    }
+    identityProviders: {
+      azureActiveDirectory: {
+        enabled: true
+        registration: {
+          clientId: authClientId
+          clientSecretSettingName: 'ENTRAID_AUTH_AAD_SECRET'
+          openIdIssuer: 'https://sts.windows.net/${tenant().tenantId}/v2.0' // for multi-tenant applications leverage param here
+        }
+        validation: {
+          // for more granular authorization rules define allowedApplications, allowedPrincipals, allowedClientApplications, allowedAudiences
+        }
+      }
+    }
   }
 }
 
