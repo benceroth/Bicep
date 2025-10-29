@@ -13,6 +13,9 @@ param authClientId string
 @secure()
 param authClientSecret string
 
+param frontDoorId  string
+param frontDoorUrl string
+
 var appServiceName = 'app-${appName}'
 var appinsightsName = 'appi-${appName}'
 var keyVaultReaderRoleId = '21090545-7ca7-4776-b22c-e363652d74d2'
@@ -83,6 +86,16 @@ resource appService 'Microsoft.Web/sites@2024-04-01' = {
       publicNetworkAccess: 'Enabled'
       ipSecurityRestrictions: [
         {
+          priority: 100
+          name: 'FrontDoor'
+          tag: 'ServiceTag'
+          ipAddress: 'AzureFrontDoor.Backend'
+          headers: {
+            'x-azure-fdid': [frontDoorId]
+          }
+          action: 'Allow'
+        }
+        {
           ipAddress: 'Any'
           action: 'Deny'
           priority: 2147483647
@@ -139,6 +152,17 @@ resource authSettings 'Microsoft.Web/sites/config@2024-11-01' = if(!empty(authCl
   parent: appService
   name: 'authsettingsV2'
   properties: {
+    httpSettings: {
+      requireHttps: true
+      forwardProxy: {
+        convention: 'Standard'
+      }
+    }
+    login: {
+      allowedExternalRedirectUrls: [
+        '${frontDoorUrl}/.auth/login/aad/callback'
+      ]
+    }
     globalValidation: {
       requireAuthentication: true
       unauthenticatedClientAction: 'RedirectToLoginPage' // for APIs switch to 'Return401'
@@ -156,6 +180,9 @@ resource authSettings 'Microsoft.Web/sites/config@2024-11-01' = if(!empty(authCl
           openIdIssuer: 'https://sts.windows.net/${tenant().tenantId}/v2.0' // for multi-tenant applications leverage param here
         }
         validation: {
+          allowedAudiences: [
+            frontDoorUrl
+          ]
           // for more granular authorization rules define allowedApplications, allowedPrincipals, allowedClientApplications, allowedAudiences
         }
       }

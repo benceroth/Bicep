@@ -24,10 +24,13 @@ param storageAccountName string
 
 param functionAppSettings object
 
+param frontDoorName string
+param wafPolicyName string
+param customDomainHost string
+
 param authClientId string
 @secure()
 param authClientSecret string
-
 
 module networkModule 'network.bicep' = {
   name: 'network'
@@ -122,7 +125,17 @@ module netfaModule 'Apps/dotnet-functionapp-mi.bicep' = {
   dependsOn: [networkModule, storageModule, logModule]
 }
 
-module netappModule 'Apps/dotnet-appservice-portal.bicep' = {
+module frontdoorModule './Security/frontdoor.bicep' = { // Can be removed if front door is not needed
+  name: 'frontdoor'
+  params: {
+    frontDoorName: frontDoorName
+    wafPolicyName: wafPolicyName
+    environmentName: environmentName
+    projectName: projectName
+  }
+}
+
+module netappModule 'Apps/dotnet-appservice-portal-frontdoor.bicep' = { // -frontdoor can be removed if front door is not needed
   params: {
     appName: projectName
     appRuntimeVersion: 'v8.0'
@@ -134,8 +147,22 @@ module netappModule 'Apps/dotnet-appservice-portal.bicep' = {
     webSubnetName: webSubnetName
     authClientId: authClientId
     authClientSecret: authClientSecret
+    frontDoorId: frontdoorModule.outputs.frontDoorId
+    frontDoorUrl: frontdoorModule.outputs.frontDoorUrl
   }
   dependsOn: [networkModule, storageModule, logModule, vaultModule]
+}
+
+module frontdoorOriginModule './Security/frontdoor-origin.bicep' = { // Can be removed if front door is not needed
+  name: 'frontDoorOrigin'
+  params: {
+    appHostName: netappModule.outputs.appServiceHostName
+    customDomainHost: customDomainHost
+    frontDoorName: frontdoorModule.outputs.frontDoorName
+    frontDoorEndpointName: frontdoorModule.outputs.frontDoorEndpointName
+    environmentName: environmentName
+    projectName: projectName
+  }
 }
 
 module actionGroup 'Alerts/actiongroup.bicep' = {
@@ -174,4 +201,13 @@ module logalertAppFaModule 'Alerts/logalert-appinsights.bicep' = {
     projectName: projectName
   }
   dependsOn: [actionGroup]
+}
+
+module activityAlertModule 'Alerts/activityalert-servicehealth.bicep' = {
+  params: {
+    actionGroupName: actionGroupName
+    alertRuleName: 'ar-${projectName}-servicehealth'
+    environmentName: environmentName
+    projectName: projectName
+  }
 }

@@ -57,12 +57,14 @@ az deployment sub create \
 - **Cosmos DB**
 - **Function App**
 - **App Service**
+- **Front Door**
 - **Application Insights**
 - **Action Group**
 - **Log Alert Rules**
+- **Service Health Rules**
 
 ## Next Steps
-- Introduction of Front Door and other Azure services
+- Introduction of new Azure services
 - Make modules more customizable
 - Provide sample code for the demo main.bicep infrastructure
 
