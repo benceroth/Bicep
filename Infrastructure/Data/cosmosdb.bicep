@@ -11,17 +11,21 @@ param vnetName string
 param peSubnetName string
 param logWorkspaceName string
 
-resource logWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' existing = {
+resource logWorkspace 'Microsoft.OperationalInsights/workspaces@2025-02-01' existing = {
   name: logWorkspaceName
 }
 
-resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-12-01-preview' = {
+resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2025-04-15' = {
   name: accountName
   location: resourceGroup().location
   properties: {
     databaseAccountOfferType: 'Standard'
     enableFreeTier: useFreeTier
-    capacityMode: 'Serverless'
+    capabilities: [
+      {
+        name: 'EnableServerless'
+      }
+    ]
     defaultIdentity: 'FirstPartyIdentity'
     publicNetworkAccess: 'Disabled'
     disableLocalAuth: true
@@ -56,7 +60,7 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-12-01-preview' = {
   }
 }
 
-resource cosmosDatabase 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-12-01-preview' = {
+resource cosmosDatabase 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2025-04-15' = {
   parent: cosmos
   name: databaseName
   properties: {
@@ -70,7 +74,7 @@ resource cosmosDatabase 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024
   }
 }
 
-resource cosmosContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-12-01-preview' = {
+resource cosmosContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2025-04-15' = {
   parent: cosmosDatabase
   name: containerName
   properties: {
@@ -103,7 +107,7 @@ resource cosmosContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/con
   }
 }
 
-resource cosmosPrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' = {
+resource cosmosPrivateEndpoint 'Microsoft.Network/privateEndpoints@2025-05-01' = {
   name: 'pe-${accountName}'
   location: resourceGroup().location
   properties: {
@@ -154,7 +158,7 @@ resource cosmosPrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetw
   }
 }
 
-resource pvtEndpointDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-05-01' = {
+resource pvtEndpointDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2025-05-01' = {
   parent: cosmosPrivateEndpoint
   name: 'pdzg-${accountName}'
   properties: {

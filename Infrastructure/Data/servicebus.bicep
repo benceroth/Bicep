@@ -21,7 +21,7 @@ param zoneRedundant bool = true
 param queueNames array = []
 
 // ── Existing resources ──
-resource logWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' existing = {
+resource logWorkspace 'Microsoft.OperationalInsights/workspaces@2025-02-01' existing = {
   name: logWorkspaceName
 }
 
@@ -74,7 +74,7 @@ resource networkRuleSet 'Microsoft.ServiceBus/namespaces/networkRuleSets@2024-01
 }
 
 // ── Private Endpoint ──
-resource privateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' = if (skuName == 'Premium') {
+resource privateEndpoint 'Microsoft.Network/privateEndpoints@2025-05-01' = if (skuName == 'Premium') {
   name: 'pe-${namespaceName}'
   location: resourceGroup().location
   properties: {
@@ -126,7 +126,7 @@ resource privateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLin
   }
 }
 
-resource pvtEndpointDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-05-01' = if (skuName == 'Premium') {
+resource pvtEndpointDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2025-05-01' = if (skuName == 'Premium') {
   parent: privateEndpoint
   name: 'pdzg-${namespaceName}'
   properties: {

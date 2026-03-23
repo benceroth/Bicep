@@ -1,6 +1,3 @@
-param environmentName string
-param projectName string
-
 param appHostName string
 
 param customDomainHost string

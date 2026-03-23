@@ -4,7 +4,7 @@ using '../main.bicep'
 // Development environment parameters
 // ═══════════════════════════════════════════════════════════════════════════
 
-param projectName = 'demoproject123test'
+param projectName = 'broth123'
 param environmentName = 'Development'
 
 // ── Feature flags ──
@@ -13,8 +13,8 @@ param enableFunctionApp = true
 param enableAppService = true
 param enableFrontDoor = true
 param enableAlerts = true
-param enableServiceBus = false
-param enableBotService = false
+param enableServiceBus = true
+param enableBotService = true
 
 // ── Cosmos DB ──
 param cosmosContainerName = 'demo'
@@ -33,16 +33,15 @@ param logCapacityPerDay = 1
 
 // ── Function App ──
 param functionAppRuntime = 'dotnet-isolated'
-param functionAppRuntimeVersion = '8.0'
+param functionAppRuntimeVersion = '10.0'
 param functionAppIdentityType = 'SystemAssigned'
 
 // ── App Service ──
-param appServiceRuntimeVersion = 'v8.0'
+param appServiceRuntimeVersion = 'v10.0'
 
 // ── Auth — overwrite in pipeline or CLI ──
 param authClientId = ''
 param authClientSecret = ''
 
 // ── Bot Service — overwrite in pipeline or CLI ──
-param botMsaAppId = ''
 param botAuthClientSecret = ''

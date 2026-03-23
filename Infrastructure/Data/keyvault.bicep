@@ -7,11 +7,11 @@ param vnetName string
 param peSubnetName string
 param logWorkspaceName string
 
-resource logWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' existing = {
+resource logWorkspace 'Microsoft.OperationalInsights/workspaces@2025-02-01' existing = {
   name: logWorkspaceName
 }
 
-resource vault 'Microsoft.KeyVault/vaults@2024-12-01-preview' = {
+resource vault 'Microsoft.KeyVault/vaults@2025-05-01' = {
   name: keyVaultName
   location: resourceGroup().location
   properties: {
@@ -32,7 +32,7 @@ resource vault 'Microsoft.KeyVault/vaults@2024-12-01-preview' = {
     softDeleteRetentionInDays: 7 
     enableRbacAuthorization: true
     enablePurgeProtection: true
-    vaultUri: 'https://${keyVaultName}.vault.azure.net/'
+    vaultUri: 'https://${keyVaultName}${environment().suffixes.keyvaultDns}/'
     provisioningState: 'Succeeded'
     publicNetworkAccess: 'Disabled'
   }
@@ -42,7 +42,7 @@ resource vault 'Microsoft.KeyVault/vaults@2024-12-01-preview' = {
   }
 }
 
-resource vaultPrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' = {
+resource vaultPrivateEndpoint 'Microsoft.Network/privateEndpoints@2025-05-01' = {
   name: 'pe-${keyVaultName}'
   location: resourceGroup().location
   properties: {
@@ -93,7 +93,7 @@ resource vaultPrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetwo
   }
 }
 
-resource pvtEndpointDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-05-01' = {
+resource pvtEndpointDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2025-05-01' = {
   parent: vaultPrivateEndpoint
   name: 'pdzg-${keyVaultName}'
   properties: {

@@ -4,7 +4,7 @@ param actionGroupName string
 param environmentName string
 param projectName string
 
-resource alertRule 'Microsoft.Insights/activityLogAlerts@2023-01-01-preview' = {
+resource alertRule 'Microsoft.Insights/activityLogAlerts@2020-10-01' = {
   name: alertRuleName
   location: 'global'
   properties: {

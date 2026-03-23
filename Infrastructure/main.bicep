@@ -24,10 +24,10 @@ param enableFrontDoor bool = true
 param enableAlerts bool = true
 
 @description('Deploy Azure Service Bus namespace.')
-param enableServiceBus bool = false
+param enableServiceBus bool = true
 
 @description('Deploy Azure Bot Service with a dedicated bot host App Service.')
-param enableBotService bool = false
+param enableBotService bool = true
 
 // ── Cosmos parameters ──
 param cosmosContainerName string = ''
@@ -66,9 +66,6 @@ param botDisplayName string = 'Bot ${projectName}'
 @description('Bot Service SKU. F0 for free tier, S1 for standard.')
 param botSkuName string = 'S1'
 
-@description('Entra ID app registration client ID used as the bot identity (msaAppId).')
-param botMsaAppId string = ''
-
 @secure()
 @description('Entra ID app registration client secret for the bot host platform auth.')
 param botAuthClientSecret string = ''
@@ -101,9 +98,9 @@ param botLlmApiKeySecretName string = ''
 param functionAppIdentityType string = 'SystemAssigned'
 
 param functionAppRuntime string = 'dotnet-isolated'
-param functionAppRuntimeVersion string = '8.0'
+param functionAppRuntimeVersion string = '10.0'
 
-param appServiceRuntimeVersion string = 'v8.0'
+param appServiceRuntimeVersion string = 'v10.0'
 
 // ── Naming conventions ──
 var actionGroupName = 'ag-${projectName}'
@@ -257,15 +254,15 @@ module netfaModule 'Modules/functionapp.bicep' = if (enableFunctionApp) {
     storageAccountName: storageModule.outputs.storageAccountName
     appSettings: functionAppSettings
     identityType: functionAppIdentityType
-    cosmosAccountName: enableCosmos ? cosmosModule.outputs.cosmosAccountName : ''
-    serviceBusNamespaceName: enableServiceBus ? serviceBusModule.outputs.serviceBusNamespaceName : ''
+    cosmosAccountName: enableCosmos ? cosmosModule!.outputs.cosmosAccountName : ''
+    serviceBusNamespaceName: enableServiceBus ? serviceBusModule!.outputs.serviceBusNamespaceName : ''
   }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Bot — Shared User-Assigned Managed Identity (optional)
 // ═══════════════════════════════════════════════════════════════════════════
-resource botIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = if (enableBotService) {
+resource botIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = if (enableBotService) {
   name: botIdentityName
   location: resourceGroup().location
   tags: {
@@ -287,14 +284,14 @@ module botAppServiceModule 'Modules/botappservice.bicep' = if (enableBotService)
     appName: projectName
     keyVaultName: vaultModule.outputs.keyVaultName
     logWorkspaceName: logModule.outputs.logWorkspaceName
-    authClientId: botMsaAppId
+    authClientId: botIdentity!.properties.clientId
     authClientSecret: botAuthClientSecret
     dotnetVersion: 'v10.0'
     llmApiEndpoint: botLlmApiEndpoint
     llmApiKeySecretName: botLlmApiKeySecretName
-    userAssignedIdentityId: enableBotService ? botIdentity.id : ''
-    userAssignedIdentityPrincipalId: enableBotService ? botIdentity.properties.principalId : ''
-    userAssignedIdentityClientId: enableBotService ? botIdentity.properties.clientId : ''
+    userAssignedIdentityId: botIdentity!.id
+    userAssignedIdentityPrincipalId: botIdentity!.properties.principalId
+    userAssignedIdentityClientId: botIdentity!.properties.clientId
   }
 }
 
@@ -306,20 +303,20 @@ module botServiceModule 'Modules/botservice.bicep' = if (enableBotService) {
   params: {
     botServiceName: botServiceName
     botDisplayName: botDisplayName
-    botEndpointHostName: enableBotService ? botAppServiceModule.outputs.botAppServiceHostName : ''
+    botEndpointHostName: botAppServiceModule!.outputs.botAppServiceHostName
     environmentName: environmentName
     projectName: projectName
     logWorkspaceName: logModule.outputs.logWorkspaceName
-    userAssignedIdentityId: enableBotService ? botIdentity.id : ''
-    msaAppId: botMsaAppId
+    userAssignedIdentityId: botIdentity!.id
+    msaAppId: botIdentity!.properties.clientId
     skuName: botSkuName
     enableTeamsChannel: enableTeamsChannel
     enableSsoConnection: enableBotSsoConnection
     ssoClientId: botSsoClientId
     ssoClientSecret: botSsoClientSecret
     ssoScopes: botSsoScopes
-    appInsightsKey: enableBotService ? botAppServiceModule.outputs.appinsightsInstrumentationKey : ''
-    appInsightsAppId: enableBotService ? botAppServiceModule.outputs.appinsightsAppId : ''
+    appInsightsKey: botAppServiceModule!.outputs.appinsightsInstrumentationKey
+    appInsightsAppId: botAppServiceModule!.outputs.appinsightsAppId
   }
 }
 
@@ -352,20 +349,18 @@ module netappModule 'Modules/appservice.bicep' = if (enableAppService) {
     webSubnetName: webSubnetName
     authClientId: authClientId
     authClientSecret: authClientSecret
-    frontDoorId: enableFrontDoor ? frontdoorModule.outputs.frontDoorId : ''
-    frontDoorUrl: enableFrontDoor ? frontdoorModule.outputs.frontDoorUrl : ''
+    frontDoorId: enableFrontDoor ? frontdoorModule!.outputs.frontDoorId : ''
+    frontDoorUrl: enableFrontDoor ? frontdoorModule!.outputs.frontDoorUrl : ''
   }
 }
 
 module frontdoorOriginModule './Security/frontdoor-origin.bicep' = if (enableFrontDoor && enableAppService) {
   name: 'frontDoorOrigin'
   params: {
-    appHostName: netappModule.outputs.appServiceHostName
+    appHostName: netappModule!.outputs.appServiceHostName
     customDomainHost: customDomainHost
-    frontDoorName: frontdoorModule.outputs.frontDoorName
-    frontDoorEndpointName: frontdoorModule.outputs.frontDoorEndpointName
-    environmentName: environmentName
-    projectName: projectName
+    frontDoorName: frontdoorModule!.outputs.frontDoorName
+    frontDoorEndpointName: frontdoorModule!.outputs.frontDoorEndpointName
   }
 }
 
@@ -387,11 +382,11 @@ module logalertNetFaModule 'Alerts/logalert-appinsights.bicep' = if (enableAlert
   name: 'logalertNetFa'
   params: {
     actionGroupName: actionGroupName
-    alertRuleName: 'ar-${netfaModule.outputs.functionAppName}-failures'
+    alertRuleName: 'ar-${netfaModule!.outputs.functionAppName}-failures'
     alertRuleQuery: '(traces | where severityLevel == 3 or severityLevel == 4 | project timestamp, message, operation_Id) | union (exceptions | project timestamp, outerMessage, operation_Id)'
     alertRuleSeverity: 1
-    alertRuleTitle: 'Error occured in ${netfaModule.outputs.functionAppName}'
-    appinsightsName: netfaModule.outputs.appinsightsName
+    alertRuleTitle: 'Error occured in ${netfaModule!.outputs.functionAppName}'
+    appinsightsName: netfaModule!.outputs.appinsightsName
     environmentName: environmentName
     projectName: projectName
   }
@@ -401,11 +396,11 @@ module logalertAppFaModule 'Alerts/logalert-appinsights.bicep' = if (enableAlert
   name: 'logalertApp'
   params: {
     actionGroupName: actionGroupName
-    alertRuleName: 'ar-${netappModule.outputs.appServiceName}-failures'
+    alertRuleName: 'ar-${netappModule!.outputs.appServiceName}-failures'
     alertRuleQuery: '(traces | where severityLevel == 3 or severityLevel == 4 | project timestamp, message, operation_Id) | union (exceptions | project timestamp, outerMessage, operation_Id)'
     alertRuleSeverity: 1
-    alertRuleTitle: 'Error occured in ${netappModule.outputs.appServiceName}'
-    appinsightsName: netappModule.outputs.appinsightsName
+    alertRuleTitle: 'Error occured in ${netappModule!.outputs.appServiceName}'
+    appinsightsName: netappModule!.outputs.appinsightsName
     environmentName: environmentName
     projectName: projectName
   }
@@ -415,11 +410,11 @@ module logalertBotModule 'Alerts/logalert-appinsights.bicep' = if (enableAlerts 
   name: 'logalertBot'
   params: {
     actionGroupName: actionGroupName
-    alertRuleName: 'ar-${botAppServiceModule.outputs.botAppServiceName}-failures'
+    alertRuleName: 'ar-${botAppServiceModule!.outputs.botAppServiceName}-failures'
     alertRuleQuery: '(traces | where severityLevel == 3 or severityLevel == 4 | project timestamp, message, operation_Id) | union (exceptions | project timestamp, outerMessage, operation_Id)'
     alertRuleSeverity: 1
-    alertRuleTitle: 'Error occured in ${botAppServiceModule.outputs.botAppServiceName}'
-    appinsightsName: botAppServiceModule.outputs.appinsightsName
+    alertRuleTitle: 'Error occured in ${botAppServiceModule!.outputs.botAppServiceName}'
+    appinsightsName: botAppServiceModule!.outputs.appinsightsName
     environmentName: environmentName
     projectName: projectName
   }

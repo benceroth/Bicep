@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.34.44.8038",
-      "templateHash": "12728656042190908149"
+      "version": "0.41.2.15936",
+      "templateHash": "8664218235353434773"
     }
   },
   "parameters": {
@@ -52,14 +52,14 @@
     },
     "enableServiceBus": {
       "type": "bool",
-      "defaultValue": false,
+      "defaultValue": true,
       "metadata": {
         "description": "Deploy Azure Service Bus namespace."
       }
     },
     "enableBotService": {
       "type": "bool",
-      "defaultValue": false,
+      "defaultValue": true,
       "metadata": {
         "description": "Deploy Azure Bot Service with a dedicated bot host App Service."
       }
@@ -140,13 +140,6 @@
         "description": "Bot Service SKU. F0 for free tier, S1 for standard."
       }
     },
-    "botMsaAppId": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Entra ID app registration client ID used as the bot identity (msaAppId)."
-      }
-    },
     "botAuthClientSecret": {
       "type": "securestring",
       "defaultValue": "",
@@ -220,11 +213,11 @@
     },
     "functionAppRuntimeVersion": {
       "type": "string",
-      "defaultValue": "8.0"
+      "defaultValue": "10.0"
     },
     "appServiceRuntimeVersion": {
       "type": "string",
-      "defaultValue": "v8.0"
+      "defaultValue": "v10.0"
     }
   },
   "variables": {
@@ -250,7 +243,7 @@
     {
       "condition": "[parameters('enableBotService')]",
       "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
-      "apiVersion": "2023-01-31",
+      "apiVersion": "2024-11-30",
       "name": "[variables('botIdentityName')]",
       "location": "[resourceGroup().location]",
       "tags": {
@@ -260,7 +253,7 @@
     },
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "network",
       "properties": {
         "expressionEvaluationOptions": {
@@ -299,8 +292,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.34.44.8038",
-              "templateHash": "14462129801566491268"
+              "version": "0.41.2.15936",
+              "templateHash": "10569964822296571185"
             }
           },
           "parameters": {
@@ -332,7 +325,7 @@
           "resources": [
             {
               "type": "Microsoft.Network/networkSecurityGroups",
-              "apiVersion": "2024-05-01",
+              "apiVersion": "2025-05-01",
               "name": "[parameters('nsgName')]",
               "location": "[resourceGroup().location]",
               "properties": {
@@ -398,7 +391,7 @@
             },
             {
               "type": "Microsoft.Network/virtualNetworks",
-              "apiVersion": "2024-05-01",
+              "apiVersion": "2025-05-01",
               "name": "[parameters('vnetName')]",
               "location": "[resourceGroup().location]",
               "properties": {
@@ -482,19 +475,19 @@
             },
             "peSubnetId": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName')), '2024-05-01').subnets[0].id]"
+              "value": "[reference(resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName')), '2025-05-01').subnets[0].id]"
             },
             "faSubnetId": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName')), '2024-05-01').subnets[1].id]"
+              "value": "[reference(resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName')), '2025-05-01').subnets[1].id]"
             },
             "webSubnetId": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName')), '2024-05-01').subnets[2].id]"
+              "value": "[reference(resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName')), '2025-05-01').subnets[2].id]"
             },
             "amplsSubnetId": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName')), '2024-05-01').subnets[3].id]"
+              "value": "[reference(resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName')), '2025-05-01').subnets[3].id]"
             }
           }
         }
@@ -502,7 +495,7 @@
     },
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "log",
       "properties": {
         "expressionEvaluationOptions": {
@@ -529,8 +522,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.34.44.8038",
-              "templateHash": "2500767416124355607"
+              "version": "0.41.2.15936",
+              "templateHash": "5606301441411662728"
             }
           },
           "parameters": {
@@ -550,7 +543,7 @@
           "resources": [
             {
               "type": "Microsoft.OperationalInsights/workspaces",
-              "apiVersion": "2023-09-01",
+              "apiVersion": "2025-02-01",
               "name": "[parameters('logWorkspaceName')]",
               "location": "[resourceGroup().location]",
               "properties": {
@@ -586,7 +579,7 @@
     },
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "storage",
       "properties": {
         "expressionEvaluationOptions": {
@@ -601,7 +594,7 @@
             "value": "[parameters('projectName')]"
           },
           "vnetName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'network'), '2022-09-01').outputs.vnetName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'network'), '2025-04-01').outputs.vnetName.value]"
           },
           "peSubnetName": {
             "value": "[variables('peSubnetName')]"
@@ -610,7 +603,7 @@
             "value": "[variables('storageAccountName')]"
           },
           "logWorkspaceName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log'), '2022-09-01').outputs.logWorkspaceName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log'), '2025-04-01').outputs.logWorkspaceName.value]"
           }
         },
         "template": {
@@ -619,8 +612,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.34.44.8038",
-              "templateHash": "10285327853415563199"
+              "version": "0.41.2.15936",
+              "templateHash": "12387449082416038654"
             }
           },
           "parameters": {
@@ -646,7 +639,7 @@
           "resources": [
             {
               "type": "Microsoft.Storage/storageAccounts",
-              "apiVersion": "2024-01-01",
+              "apiVersion": "2025-01-01",
               "name": "[parameters('storageAccountName')]",
               "location": "[resourceGroup().location]",
               "kind": "StorageV2",
@@ -682,7 +675,7 @@
             {
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
-              "scope": "[format('Microsoft.Storage/storageAccounts/{0}', parameters('storageAccountName'))]",
+              "scope": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
               "name": "[parameters('storageAccountName')]",
               "properties": {
                 "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logWorkspaceName'))]",
@@ -699,7 +692,7 @@
             },
             {
               "type": "Microsoft.Storage/storageAccounts/blobServices",
-              "apiVersion": "2021-06-01",
+              "apiVersion": "2025-01-01",
               "name": "[format('{0}/{1}', parameters('storageAccountName'), 'default')]",
               "properties": {},
               "dependsOn": [
@@ -708,7 +701,7 @@
             },
             {
               "type": "Microsoft.Network/privateEndpoints",
-              "apiVersion": "2024-05-01",
+              "apiVersion": "2025-05-01",
               "name": "[format('pe-{0}', parameters('storageAccountName'))]",
               "location": "[resourceGroup().location]",
               "properties": {
@@ -737,7 +730,7 @@
             },
             {
               "type": "Microsoft.Network/privateDnsZones",
-              "apiVersion": "2020-06-01",
+              "apiVersion": "2024-06-01",
               "name": "[format('privatelink.blob.{0}', environment().suffixes.storage)]",
               "location": "global",
               "properties": {},
@@ -748,7 +741,7 @@
             },
             {
               "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-              "apiVersion": "2020-06-01",
+              "apiVersion": "2024-06-01",
               "name": "[format('{0}/{1}', format('privatelink.blob.{0}', environment().suffixes.storage), format('pdz-{0}-link', parameters('storageAccountName')))]",
               "location": "global",
               "properties": {
@@ -767,7 +760,7 @@
             },
             {
               "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
-              "apiVersion": "2021-05-01",
+              "apiVersion": "2025-05-01",
               "name": "[format('{0}/{1}', format('pe-{0}', parameters('storageAccountName')), format('pdzg-{0}', parameters('storageAccountName')))]",
               "properties": {
                 "privateDnsZoneConfigs": [
@@ -787,7 +780,7 @@
             {
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
-              "scope": "[format('Microsoft.Storage/storageAccounts/{0}/blobServices/{1}', parameters('storageAccountName'), 'default')]",
+              "scope": "[resourceId('Microsoft.Storage/storageAccounts/blobServices', parameters('storageAccountName'), 'default')]",
               "name": "[parameters('storageAccountName')]",
               "properties": {
                 "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logWorkspaceName'))]",
@@ -804,7 +797,7 @@
             },
             {
               "type": "Microsoft.Storage/storageAccounts/fileServices",
-              "apiVersion": "2021-06-01",
+              "apiVersion": "2025-01-01",
               "name": "[format('{0}/{1}', parameters('storageAccountName'), 'default')]",
               "properties": {},
               "dependsOn": [
@@ -814,7 +807,7 @@
             {
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
-              "scope": "[format('Microsoft.Storage/storageAccounts/{0}/fileServices/{1}', parameters('storageAccountName'), 'default')]",
+              "scope": "[resourceId('Microsoft.Storage/storageAccounts/fileServices', parameters('storageAccountName'), 'default')]",
               "name": "[parameters('storageAccountName')]",
               "properties": {
                 "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logWorkspaceName'))]",
@@ -831,7 +824,7 @@
             },
             {
               "type": "Microsoft.Storage/storageAccounts/queueServices",
-              "apiVersion": "2021-06-01",
+              "apiVersion": "2025-01-01",
               "name": "[format('{0}/{1}', parameters('storageAccountName'), 'default')]",
               "properties": {},
               "dependsOn": [
@@ -841,7 +834,7 @@
             {
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
-              "scope": "[format('Microsoft.Storage/storageAccounts/{0}/queueServices/{1}', parameters('storageAccountName'), 'default')]",
+              "scope": "[resourceId('Microsoft.Storage/storageAccounts/queueServices', parameters('storageAccountName'), 'default')]",
               "name": "[parameters('storageAccountName')]",
               "properties": {
                 "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logWorkspaceName'))]",
@@ -858,7 +851,7 @@
             },
             {
               "type": "Microsoft.Storage/storageAccounts/tableServices",
-              "apiVersion": "2021-06-01",
+              "apiVersion": "2025-01-01",
               "name": "[format('{0}/{1}', parameters('storageAccountName'), 'default')]",
               "properties": {},
               "dependsOn": [
@@ -867,7 +860,7 @@
             },
             {
               "type": "Microsoft.Network/privateEndpoints",
-              "apiVersion": "2024-05-01",
+              "apiVersion": "2025-05-01",
               "name": "[format('pe-{0}-table', parameters('storageAccountName'))]",
               "location": "[resourceGroup().location]",
               "properties": {
@@ -896,7 +889,7 @@
             },
             {
               "type": "Microsoft.Network/privateDnsZones",
-              "apiVersion": "2020-06-01",
+              "apiVersion": "2024-06-01",
               "name": "[format('privatelink.table.{0}', environment().suffixes.storage)]",
               "location": "global",
               "properties": {},
@@ -907,7 +900,7 @@
             },
             {
               "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-              "apiVersion": "2020-06-01",
+              "apiVersion": "2024-06-01",
               "name": "[format('{0}/{1}', format('privatelink.table.{0}', environment().suffixes.storage), format('pdz-{0}-table-link', parameters('storageAccountName')))]",
               "location": "global",
               "properties": {
@@ -926,7 +919,7 @@
             },
             {
               "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
-              "apiVersion": "2021-05-01",
+              "apiVersion": "2025-05-01",
               "name": "[format('{0}/{1}', format('pe-{0}-table', parameters('storageAccountName')), format('pdzg-{0}-table', parameters('storageAccountName')))]",
               "properties": {
                 "privateDnsZoneConfigs": [
@@ -946,7 +939,7 @@
             {
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
-              "scope": "[format('Microsoft.Storage/storageAccounts/{0}/tableServices/{1}', parameters('storageAccountName'), 'default')]",
+              "scope": "[resourceId('Microsoft.Storage/storageAccounts/tableServices', parameters('storageAccountName'), 'default')]",
               "name": "[parameters('storageAccountName')]",
               "properties": {
                 "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logWorkspaceName'))]",
@@ -981,7 +974,7 @@
     },
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "vault",
       "properties": {
         "expressionEvaluationOptions": {
@@ -996,7 +989,7 @@
             "value": "[parameters('projectName')]"
           },
           "vnetName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'network'), '2022-09-01').outputs.vnetName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'network'), '2025-04-01').outputs.vnetName.value]"
           },
           "peSubnetName": {
             "value": "[variables('peSubnetName')]"
@@ -1005,7 +998,7 @@
             "value": "[variables('keyVaultName')]"
           },
           "logWorkspaceName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log'), '2022-09-01').outputs.logWorkspaceName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log'), '2025-04-01').outputs.logWorkspaceName.value]"
           }
         },
         "template": {
@@ -1014,8 +1007,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.34.44.8038",
-              "templateHash": "4499062235637457922"
+              "version": "0.41.2.15936",
+              "templateHash": "2770911751330210285"
             }
           },
           "parameters": {
@@ -1041,7 +1034,7 @@
           "resources": [
             {
               "type": "Microsoft.KeyVault/vaults",
-              "apiVersion": "2024-12-01-preview",
+              "apiVersion": "2025-05-01",
               "name": "[parameters('keyVaultName')]",
               "location": "[resourceGroup().location]",
               "properties": {
@@ -1062,7 +1055,7 @@
                 "softDeleteRetentionInDays": 7,
                 "enableRbacAuthorization": true,
                 "enablePurgeProtection": true,
-                "vaultUri": "[format('https://{0}.vault.azure.net/', parameters('keyVaultName'))]",
+                "vaultUri": "[format('https://{0}{1}/', parameters('keyVaultName'), environment().suffixes.keyvaultDns)]",
                 "provisioningState": "Succeeded",
                 "publicNetworkAccess": "Disabled"
               },
@@ -1073,7 +1066,7 @@
             },
             {
               "type": "Microsoft.Network/privateEndpoints",
-              "apiVersion": "2024-05-01",
+              "apiVersion": "2025-05-01",
               "name": "[format('pe-{0}', parameters('keyVaultName'))]",
               "location": "[resourceGroup().location]",
               "properties": {
@@ -1132,7 +1125,7 @@
             },
             {
               "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
-              "apiVersion": "2024-05-01",
+              "apiVersion": "2025-05-01",
               "name": "[format('{0}/{1}', format('pe-{0}', parameters('keyVaultName')), format('pdzg-{0}', parameters('keyVaultName')))]",
               "properties": {
                 "privateDnsZoneConfigs": [
@@ -1152,7 +1145,7 @@
             {
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
-              "scope": "[format('Microsoft.KeyVault/vaults/{0}', parameters('keyVaultName'))]",
+              "scope": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
               "name": "[parameters('keyVaultName')]",
               "properties": {
                 "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logWorkspaceName'))]",
@@ -1185,7 +1178,7 @@
             },
             "keyVaultUri": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2024-12-01-preview').vaultUri]"
+              "value": "[reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2025-05-01').vaultUri]"
             }
           }
         }
@@ -1197,7 +1190,7 @@
     },
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "vaultSecrets",
       "properties": {
         "expressionEvaluationOptions": {
@@ -1206,7 +1199,7 @@
         "mode": "Incremental",
         "parameters": {
           "keyVaultName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'vault'), '2022-09-01').outputs.keyVaultName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'vault'), '2025-04-01').outputs.keyVaultName.value]"
           },
           "secretNames": "[if(parameters('enableCosmos'), createObject('value', createArray('cosmosdb-account', 'cosmosdb-database')), createObject('value', createArray()))]",
           "secretValues": "[if(parameters('enableCosmos'), createObject('value', createArray(variables('cosmosName'), parameters('projectName'))), createObject('value', createArray()))]"
@@ -1218,8 +1211,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.34.44.8038",
-              "templateHash": "6251958575740958624"
+              "version": "0.41.2.15936",
+              "templateHash": "2554664224361588779"
             }
           },
           "parameters": {
@@ -1243,7 +1236,7 @@
             "vault": {
               "existing": true,
               "type": "Microsoft.KeyVault/vaults",
-              "apiVersion": "2024-12-01-preview",
+              "apiVersion": "2025-05-01",
               "name": "[parameters('keyVaultName')]"
             },
             "secret": {
@@ -1252,7 +1245,7 @@
                 "count": "[length(parameters('secretNames'))]"
               },
               "type": "Microsoft.KeyVault/vaults/secrets",
-              "apiVersion": "2024-12-01-preview",
+              "apiVersion": "2025-05-01",
               "name": "[format('{0}/{1}', parameters('keyVaultName'), parameters('secretNames')[copyIndex()])]",
               "properties": {
                 "value": "[parameters('secretValues')[copyIndex()]]",
@@ -1271,7 +1264,7 @@
     {
       "condition": "[parameters('enableCosmos')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "cosmos",
       "properties": {
         "expressionEvaluationOptions": {
@@ -1304,10 +1297,10 @@
             "value": "[parameters('cosmosUseFreeTier')]"
           },
           "vnetName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'network'), '2022-09-01').outputs.vnetName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'network'), '2025-04-01').outputs.vnetName.value]"
           },
           "logWorkspaceName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log'), '2022-09-01').outputs.logWorkspaceName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log'), '2025-04-01').outputs.logWorkspaceName.value]"
           }
         },
         "template": {
@@ -1316,8 +1309,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.34.44.8038",
-              "templateHash": "3376804846221516709"
+              "version": "0.41.2.15936",
+              "templateHash": "12813410160706168128"
             }
           },
           "parameters": {
@@ -1355,13 +1348,17 @@
           "resources": [
             {
               "type": "Microsoft.DocumentDB/databaseAccounts",
-              "apiVersion": "2024-12-01-preview",
+              "apiVersion": "2025-04-15",
               "name": "[parameters('accountName')]",
               "location": "[resourceGroup().location]",
               "properties": {
                 "databaseAccountOfferType": "Standard",
                 "enableFreeTier": "[parameters('useFreeTier')]",
-                "capacityMode": "Serverless",
+                "capabilities": [
+                  {
+                    "name": "EnableServerless"
+                  }
+                ],
                 "defaultIdentity": "FirstPartyIdentity",
                 "publicNetworkAccess": "Disabled",
                 "disableLocalAuth": true,
@@ -1397,7 +1394,7 @@
             },
             {
               "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases",
-              "apiVersion": "2024-12-01-preview",
+              "apiVersion": "2025-04-15",
               "name": "[format('{0}/{1}', parameters('accountName'), parameters('databaseName'))]",
               "properties": {
                 "resource": {
@@ -1414,7 +1411,7 @@
             },
             {
               "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers",
-              "apiVersion": "2024-12-01-preview",
+              "apiVersion": "2025-04-15",
               "name": "[format('{0}/{1}/{2}', parameters('accountName'), parameters('databaseName'), parameters('containerName'))]",
               "properties": {
                 "resource": {
@@ -1450,7 +1447,7 @@
             },
             {
               "type": "Microsoft.Network/privateEndpoints",
-              "apiVersion": "2024-05-01",
+              "apiVersion": "2025-05-01",
               "name": "[format('pe-{0}', parameters('accountName'))]",
               "location": "[resourceGroup().location]",
               "properties": {
@@ -1509,7 +1506,7 @@
             },
             {
               "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
-              "apiVersion": "2024-05-01",
+              "apiVersion": "2025-05-01",
               "name": "[format('{0}/{1}', format('pe-{0}', parameters('accountName')), format('pdzg-{0}', parameters('accountName')))]",
               "properties": {
                 "privateDnsZoneConfigs": [
@@ -1529,7 +1526,7 @@
             {
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
-              "scope": "[format('Microsoft.DocumentDB/databaseAccounts/{0}', parameters('accountName'))]",
+              "scope": "[resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('accountName'))]",
               "name": "[parameters('accountName')]",
               "properties": {
                 "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logWorkspaceName'))]",
@@ -1571,7 +1568,7 @@
     {
       "condition": "[parameters('enableServiceBus')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "servicebus",
       "properties": {
         "expressionEvaluationOptions": {
@@ -1589,13 +1586,13 @@
             "value": "[parameters('projectName')]"
           },
           "vnetName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'network'), '2022-09-01').outputs.vnetName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'network'), '2025-04-01').outputs.vnetName.value]"
           },
           "peSubnetName": {
             "value": "[variables('peSubnetName')]"
           },
           "logWorkspaceName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log'), '2022-09-01').outputs.logWorkspaceName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log'), '2025-04-01').outputs.logWorkspaceName.value]"
           },
           "skuName": {
             "value": "[parameters('serviceBusSku')]"
@@ -1610,8 +1607,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.34.44.8038",
-              "templateHash": "14031967243348822373"
+              "version": "0.41.2.15936",
+              "templateHash": "5479518073054294261"
             }
           },
           "parameters": {
@@ -1726,7 +1723,7 @@
             {
               "condition": "[equals(parameters('skuName'), 'Premium')]",
               "type": "Microsoft.Network/privateEndpoints",
-              "apiVersion": "2024-05-01",
+              "apiVersion": "2025-05-01",
               "name": "[format('pe-{0}', parameters('namespaceName'))]",
               "location": "[resourceGroup().location]",
               "properties": {
@@ -1788,7 +1785,7 @@
             {
               "condition": "[equals(parameters('skuName'), 'Premium')]",
               "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
-              "apiVersion": "2024-05-01",
+              "apiVersion": "2025-05-01",
               "name": "[format('{0}/{1}', format('pe-{0}', parameters('namespaceName')), format('pdzg-{0}', parameters('namespaceName')))]",
               "properties": {
                 "privateDnsZoneConfigs": [
@@ -1808,7 +1805,7 @@
             {
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
-              "scope": "[format('Microsoft.ServiceBus/namespaces/{0}', parameters('namespaceName'))]",
+              "scope": "[resourceId('Microsoft.ServiceBus/namespaces', parameters('namespaceName'))]",
               "name": "[parameters('namespaceName')]",
               "properties": {
                 "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logWorkspaceName'))]",
@@ -1850,7 +1847,7 @@
     {
       "condition": "[parameters('enableFunctionApp')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "netfa",
       "properties": {
         "expressionEvaluationOptions": {
@@ -1865,10 +1862,10 @@
             "value": "[parameters('projectName')]"
           },
           "vnetName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'network'), '2022-09-01').outputs.vnetName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'network'), '2025-04-01').outputs.vnetName.value]"
           },
           "keyVaultName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'vault'), '2022-09-01').outputs.keyVaultName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'vault'), '2025-04-01').outputs.keyVaultName.value]"
           },
           "faSubnetName": {
             "value": "[variables('faSubnetName')]"
@@ -1883,10 +1880,10 @@
             "value": "[parameters('functionAppRuntimeVersion')]"
           },
           "logWorkspaceName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log'), '2022-09-01').outputs.logWorkspaceName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log'), '2025-04-01').outputs.logWorkspaceName.value]"
           },
           "storageAccountName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'storage'), '2022-09-01').outputs.storageAccountName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'storage'), '2025-04-01').outputs.storageAccountName.value]"
           },
           "appSettings": {
             "value": "[variables('functionAppSettings')]"
@@ -1894,8 +1891,8 @@
           "identityType": {
             "value": "[parameters('functionAppIdentityType')]"
           },
-          "cosmosAccountName": "[if(parameters('enableCosmos'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'cosmos'), '2022-09-01').outputs.cosmosAccountName.value), createObject('value', ''))]",
-          "serviceBusNamespaceName": "[if(parameters('enableServiceBus'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'servicebus'), '2022-09-01').outputs.serviceBusNamespaceName.value), createObject('value', ''))]"
+          "cosmosAccountName": "[if(parameters('enableCosmos'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'cosmos'), '2025-04-01').outputs.cosmosAccountName.value), createObject('value', ''))]",
+          "serviceBusNamespaceName": "[if(parameters('enableServiceBus'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'servicebus'), '2025-04-01').outputs.serviceBusNamespaceName.value), createObject('value', ''))]"
         },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -1903,8 +1900,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.34.44.8038",
-              "templateHash": "8400262965444433051"
+              "version": "0.41.2.15936",
+              "templateHash": "13971574022384762642"
             }
           },
           "parameters": {
@@ -2002,9 +1999,9 @@
           "resources": [
             {
               "type": "Microsoft.Web/sites/config",
-              "apiVersion": "2024-04-01",
+              "apiVersion": "2025-03-01",
               "name": "[format('{0}/{1}', variables('functionAppName'), 'appsettings')]",
-              "properties": "[union(createObject('APPINSIGHTS_INSTRUMENTATIONKEY', reference(resourceId('Microsoft.Insights/components', variables('appinsightsName')), '2020-02-02').InstrumentationKey, 'APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', variables('appinsightsName')), '2020-02-02').ConnectionString, 'ApplicationInsightsAgent_EXTENSION_VERSION', '~2', 'InstrumentationEngine_EXTENSION_VERSION', 'disabled', 'XDT_MicrosoftApplicationInsights_BaseExtension', 'disabled', 'XDT_MicrosoftApplicationInsights_Mode', 'recommended', 'AzureWebJobsStorage__accountName', parameters('storageAccountName'), 'AzureWebJobsStorage__credential', 'managedidentity', 'FUNCTIONS_EXTENSION_VERSION', '~4', 'FUNCTIONS_WORKER_RUNTIME', parameters('functionAppRuntime'), 'FUNCTIONS_WORKER_RUNTIME_VERSION', parameters('functionAppRuntimeVersion'), 'WEBSITE_RUN_FROM_PACKAGE', '1'), if(variables('isSystemAssigned'), variables('systemAssignedSettings'), createObject('APPLICATIONINSIGHTS_AUTHENTICATION_STRING', format('Authorization=AAD;ClientId={0}', if(variables('isSystemAssigned'), '', reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('uai-data-owner-{0}', parameters('appName'))), '2023-01-31').clientId)), 'AzureWebJobsStorage__clientId', if(variables('isSystemAssigned'), '', reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('uai-data-owner-{0}', parameters('appName'))), '2023-01-31').clientId))), parameters('appSettings'))]",
+              "properties": "[union(createObject('APPINSIGHTS_INSTRUMENTATIONKEY', reference(resourceId('Microsoft.Insights/components', variables('appinsightsName')), '2020-02-02').InstrumentationKey, 'APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', variables('appinsightsName')), '2020-02-02').ConnectionString, 'ApplicationInsightsAgent_EXTENSION_VERSION', '~2', 'InstrumentationEngine_EXTENSION_VERSION', 'disabled', 'XDT_MicrosoftApplicationInsights_BaseExtension', 'disabled', 'XDT_MicrosoftApplicationInsights_Mode', 'recommended', 'AzureWebJobsStorage__accountName', parameters('storageAccountName'), 'AzureWebJobsStorage__credential', 'managedidentity', 'FUNCTIONS_EXTENSION_VERSION', '~4', 'FUNCTIONS_WORKER_RUNTIME', parameters('functionAppRuntime'), 'FUNCTIONS_WORKER_RUNTIME_VERSION', parameters('functionAppRuntimeVersion'), 'WEBSITE_RUN_FROM_PACKAGE', '1'), if(variables('isSystemAssigned'), variables('systemAssignedSettings'), createObject('APPLICATIONINSIGHTS_AUTHENTICATION_STRING', format('Authorization=AAD;ClientId={0}', if(variables('isSystemAssigned'), '', reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('uai-data-owner-{0}', parameters('appName'))), '2024-11-30').clientId)), 'AzureWebJobsStorage__clientId', if(variables('isSystemAssigned'), '', reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('uai-data-owner-{0}', parameters('appName'))), '2024-11-30').clientId))), parameters('appSettings'))]",
               "dependsOn": [
                 "[resourceId('Microsoft.Insights/components', variables('appinsightsName'))]",
                 "[resourceId('Microsoft.Web/sites', variables('functionAppName'))]",
@@ -2014,7 +2011,7 @@
             {
               "condition": "[not(variables('isSystemAssigned'))]",
               "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
-              "apiVersion": "2023-01-31",
+              "apiVersion": "2024-11-30",
               "name": "[format('uai-data-owner-{0}', parameters('appName'))]",
               "location": "[resourceGroup().location]"
             },
@@ -2036,7 +2033,7 @@
             },
             {
               "type": "Microsoft.Web/serverfarms",
-              "apiVersion": "2024-04-01",
+              "apiVersion": "2025-03-01",
               "name": "[format('asp-{0}', parameters('appName'))]",
               "location": "[resourceGroup().location]",
               "sku": {
@@ -2050,7 +2047,7 @@
             },
             {
               "type": "Microsoft.Web/sites",
-              "apiVersion": "2024-04-01",
+              "apiVersion": "2025-03-01",
               "name": "[variables('functionAppName')]",
               "location": "[resourceGroup().location]",
               "kind": "functionapp,windows",
@@ -2113,11 +2110,11 @@
             {
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
-              "scope": "[format('Microsoft.Storage/storageAccounts/{0}', parameters('storageAccountName'))]",
+              "scope": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
               "name": "[guid(subscription().id, resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), resourceId('Microsoft.Web/sites', variables('functionAppName')), 'Storage Blob Data Contributor')]",
               "properties": {
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('storageBlobDataContributorRoleId'))]",
-                "principalId": "[if(variables('isSystemAssigned'), reference(resourceId('Microsoft.Web/sites', variables('functionAppName')), '2024-04-01', 'full').identity.principalId, reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('uai-data-owner-{0}', parameters('appName'))), '2023-01-31').principalId)]",
+                "principalId": "[if(variables('isSystemAssigned'), reference(resourceId('Microsoft.Web/sites', variables('functionAppName')), '2025-03-01', 'full').identity.principalId, reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('uai-data-owner-{0}', parameters('appName'))), '2024-11-30').principalId)]",
                 "principalType": "ServicePrincipal"
               },
               "dependsOn": [
@@ -2128,10 +2125,10 @@
             {
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
-              "scope": "[format('Microsoft.Insights/components/{0}', variables('appinsightsName'))]",
+              "scope": "[resourceId('Microsoft.Insights/components', variables('appinsightsName'))]",
               "name": "[guid(subscription().id, resourceId('Microsoft.Insights/components', variables('appinsightsName')), resourceId('Microsoft.Web/sites', variables('functionAppName')), 'Monitoring Metrics Publisher')]",
               "properties": {
-                "principalId": "[if(variables('isSystemAssigned'), reference(resourceId('Microsoft.Web/sites', variables('functionAppName')), '2024-04-01', 'full').identity.principalId, reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('uai-data-owner-{0}', parameters('appName'))), '2023-01-31').principalId)]",
+                "principalId": "[if(variables('isSystemAssigned'), reference(resourceId('Microsoft.Web/sites', variables('functionAppName')), '2025-03-01', 'full').identity.principalId, reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('uai-data-owner-{0}', parameters('appName'))), '2024-11-30').principalId)]",
                 "principalType": "ServicePrincipal",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('monitoringMetricsPublisherId'))]"
               },
@@ -2144,10 +2141,10 @@
             {
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
-              "scope": "[format('Microsoft.KeyVault/vaults/{0}', parameters('keyVaultName'))]",
+              "scope": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
               "name": "[guid(subscription().id, resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), resourceId('Microsoft.Web/sites', variables('functionAppName')), 'Key Vault Secrets User')]",
               "properties": {
-                "principalId": "[if(variables('isSystemAssigned'), reference(resourceId('Microsoft.Web/sites', variables('functionAppName')), '2024-04-01', 'full').identity.principalId, reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('uai-data-owner-{0}', parameters('appName'))), '2023-01-31').principalId)]",
+                "principalId": "[if(variables('isSystemAssigned'), reference(resourceId('Microsoft.Web/sites', variables('functionAppName')), '2025-03-01', 'full').identity.principalId, reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('uai-data-owner-{0}', parameters('appName'))), '2024-11-30').principalId)]",
                 "principalType": "ServicePrincipal",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('keyVaultSecretsUserRoleId'))]"
               },
@@ -2159,10 +2156,10 @@
             {
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
-              "scope": "[format('Microsoft.KeyVault/vaults/{0}', parameters('keyVaultName'))]",
+              "scope": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
               "name": "[guid(subscription().id, resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), resourceId('Microsoft.Web/sites', variables('functionAppName')), 'Key Vault Reader')]",
               "properties": {
-                "principalId": "[if(variables('isSystemAssigned'), reference(resourceId('Microsoft.Web/sites', variables('functionAppName')), '2024-04-01', 'full').identity.principalId, reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('uai-data-owner-{0}', parameters('appName'))), '2023-01-31').principalId)]",
+                "principalId": "[if(variables('isSystemAssigned'), reference(resourceId('Microsoft.Web/sites', variables('functionAppName')), '2025-03-01', 'full').identity.principalId, reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('uai-data-owner-{0}', parameters('appName'))), '2024-11-30').principalId)]",
                 "principalType": "ServicePrincipal",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('keyVaultReaderRoleId'))]"
               },
@@ -2174,11 +2171,11 @@
             {
               "condition": "[not(equals(parameters('cosmosAccountName'), ''))]",
               "type": "Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments",
-              "apiVersion": "2024-12-01-preview",
+              "apiVersion": "2025-04-15",
               "name": "[format('{0}/{1}', parameters('cosmosAccountName'), guid(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('cosmosAccountName')), resourceId('Microsoft.Web/sites', variables('functionAppName')), 'Cosmos DB Contributor'))]",
               "properties": {
                 "roleDefinitionId": "[format('{0}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002', resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('cosmosAccountName')))]",
-                "principalId": "[if(variables('isSystemAssigned'), reference(resourceId('Microsoft.Web/sites', variables('functionAppName')), '2024-04-01', 'full').identity.principalId, reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('uai-data-owner-{0}', parameters('appName'))), '2023-01-31').principalId)]",
+                "principalId": "[if(variables('isSystemAssigned'), reference(resourceId('Microsoft.Web/sites', variables('functionAppName')), '2025-03-01', 'full').identity.principalId, reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('uai-data-owner-{0}', parameters('appName'))), '2024-11-30').principalId)]",
                 "scope": "[resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('cosmosAccountName'))]"
               },
               "dependsOn": [
@@ -2190,10 +2187,10 @@
               "condition": "[not(equals(parameters('serviceBusNamespaceName'), ''))]",
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
-              "scope": "[format('Microsoft.ServiceBus/namespaces/{0}', parameters('serviceBusNamespaceName'))]",
+              "scope": "[resourceId('Microsoft.ServiceBus/namespaces', parameters('serviceBusNamespaceName'))]",
               "name": "[guid(subscription().id, resourceId('Microsoft.ServiceBus/namespaces', parameters('serviceBusNamespaceName')), resourceId('Microsoft.Web/sites', variables('functionAppName')), 'Service Bus Data Receiver')]",
               "properties": {
-                "principalId": "[if(variables('isSystemAssigned'), reference(resourceId('Microsoft.Web/sites', variables('functionAppName')), '2024-04-01', 'full').identity.principalId, reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('uai-data-owner-{0}', parameters('appName'))), '2023-01-31').principalId)]",
+                "principalId": "[if(variables('isSystemAssigned'), reference(resourceId('Microsoft.Web/sites', variables('functionAppName')), '2025-03-01', 'full').identity.principalId, reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('uai-data-owner-{0}', parameters('appName'))), '2024-11-30').principalId)]",
                 "principalType": "ServicePrincipal",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('serviceBusDataReceiverRoleId'))]"
               },
@@ -2205,7 +2202,7 @@
             {
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
-              "scope": "[format('Microsoft.Web/sites/{0}', variables('functionAppName'))]",
+              "scope": "[resourceId('Microsoft.Web/sites', variables('functionAppName'))]",
               "name": "[variables('functionAppName')]",
               "properties": {
                 "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logWorkspaceName'))]",
@@ -2238,7 +2235,7 @@
             },
             "functionAppPrincipalId": {
               "type": "string",
-              "value": "[if(variables('isSystemAssigned'), reference(resourceId('Microsoft.Web/sites', variables('functionAppName')), '2024-04-01', 'full').identity.principalId, reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('uai-data-owner-{0}', parameters('appName'))), '2023-01-31').principalId)]"
+              "value": "[if(variables('isSystemAssigned'), reference(resourceId('Microsoft.Web/sites', variables('functionAppName')), '2025-03-01', 'full').identity.principalId, reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('uai-data-owner-{0}', parameters('appName'))), '2024-11-30').principalId)]"
             }
           }
         }
@@ -2255,7 +2252,7 @@
     {
       "condition": "[parameters('enableBotService')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "botAppService",
       "properties": {
         "expressionEvaluationOptions": {
@@ -2270,7 +2267,7 @@
             "value": "[parameters('projectName')]"
           },
           "vnetName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'network'), '2022-09-01').outputs.vnetName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'network'), '2025-04-01').outputs.vnetName.value]"
           },
           "webSubnetName": {
             "value": "[variables('webSubnetName')]"
@@ -2279,13 +2276,13 @@
             "value": "[parameters('projectName')]"
           },
           "keyVaultName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'vault'), '2022-09-01').outputs.keyVaultName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'vault'), '2025-04-01').outputs.keyVaultName.value]"
           },
           "logWorkspaceName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log'), '2022-09-01').outputs.logWorkspaceName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log'), '2025-04-01').outputs.logWorkspaceName.value]"
           },
           "authClientId": {
-            "value": "[parameters('botMsaAppId')]"
+            "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('botIdentityName')), '2024-11-30').clientId]"
           },
           "authClientSecret": {
             "value": "[parameters('botAuthClientSecret')]"
@@ -2299,9 +2296,15 @@
           "llmApiKeySecretName": {
             "value": "[parameters('botLlmApiKeySecretName')]"
           },
-          "userAssignedIdentityId": "[if(parameters('enableBotService'), createObject('value', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('botIdentityName'))), createObject('value', ''))]",
-          "userAssignedIdentityPrincipalId": "[if(parameters('enableBotService'), createObject('value', reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('botIdentityName')), '2023-01-31').principalId), createObject('value', ''))]",
-          "userAssignedIdentityClientId": "[if(parameters('enableBotService'), createObject('value', reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('botIdentityName')), '2023-01-31').clientId), createObject('value', ''))]"
+          "userAssignedIdentityId": {
+            "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('botIdentityName'))]"
+          },
+          "userAssignedIdentityPrincipalId": {
+            "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('botIdentityName')), '2024-11-30').principalId]"
+          },
+          "userAssignedIdentityClientId": {
+            "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('botIdentityName')), '2024-11-30').clientId]"
+          }
         },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -2309,8 +2312,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.34.44.8038",
-              "templateHash": "2689503070066148057"
+              "version": "0.41.2.15936",
+              "templateHash": "11424572711037288830"
             }
           },
           "parameters": {
@@ -2445,9 +2448,9 @@
           "resources": [
             {
               "type": "Microsoft.Web/sites/config",
-              "apiVersion": "2024-04-01",
+              "apiVersion": "2025-03-01",
               "name": "[format('{0}/{1}', variables('botAppServiceName'), 'appsettings')]",
-              "properties": "[union(createObject('APPINSIGHTS_INSTRUMENTATIONKEY', reference(resourceId('Microsoft.Insights/components', variables('appinsightsName')), '2020-02-02').InstrumentationKey, 'APPLICATIONINSIGHTS_AUTHENTICATION_STRING', format('Authorization=AAD;ClientId={0}', parameters('userAssignedIdentityClientId')), 'APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', variables('appinsightsName')), '2020-02-02').ConnectionString, 'ApplicationInsightsAgent_EXTENSION_VERSION', '~2', 'InstrumentationEngine_EXTENSION_VERSION', 'disabled', 'XDT_MicrosoftApplicationInsights_BaseExtension', 'disabled', 'XDT_MicrosoftApplicationInsights_Mode', 'recommended', 'WEBSITE_RUN_FROM_PACKAGE', '1', 'MicrosoftAppType', 'UserAssignedMSI', 'MicrosoftAppId', parameters('authClientId'), 'MicrosoftAppTenantId', tenant().tenantId, 'MicrosoftAppPassword', '', 'WEBSITE_AUTH_AAD_ALLOWED_TENANTS', tenant().tenantId), variables('authSecretSetting'), if(not(empty(parameters('llmApiEndpoint'))), createObject('LlmApi:Endpoint', parameters('llmApiEndpoint'), 'LlmApi:KeySecretName', parameters('llmApiKeySecretName'), 'LlmApi:KeyVaultUri', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2024-12-01-preview').vaultUri), createObject()))]",
+              "properties": "[union(createObject('APPINSIGHTS_INSTRUMENTATIONKEY', reference(resourceId('Microsoft.Insights/components', variables('appinsightsName')), '2020-02-02').InstrumentationKey, 'APPLICATIONINSIGHTS_AUTHENTICATION_STRING', format('Authorization=AAD;ClientId={0}', parameters('userAssignedIdentityClientId')), 'APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', variables('appinsightsName')), '2020-02-02').ConnectionString, 'ApplicationInsightsAgent_EXTENSION_VERSION', '~2', 'InstrumentationEngine_EXTENSION_VERSION', 'disabled', 'XDT_MicrosoftApplicationInsights_BaseExtension', 'disabled', 'XDT_MicrosoftApplicationInsights_Mode', 'recommended', 'WEBSITE_RUN_FROM_PACKAGE', '1', 'MicrosoftAppType', 'UserAssignedMSI', 'MicrosoftAppId', parameters('authClientId'), 'MicrosoftAppTenantId', tenant().tenantId, 'MicrosoftAppPassword', '', 'WEBSITE_AUTH_AAD_ALLOWED_TENANTS', tenant().tenantId), variables('authSecretSetting'), if(not(empty(parameters('llmApiEndpoint'))), createObject('LlmApi:Endpoint', parameters('llmApiEndpoint'), 'LlmApi:KeySecretName', parameters('llmApiKeySecretName'), 'LlmApi:KeyVaultUri', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2025-05-01').vaultUri), createObject()))]",
               "dependsOn": [
                 "[resourceId('Microsoft.Insights/components', variables('appinsightsName'))]",
                 "[resourceId('Microsoft.Web/sites', variables('botAppServiceName'))]"
@@ -2471,7 +2474,7 @@
             },
             {
               "type": "Microsoft.Web/serverfarms",
-              "apiVersion": "2024-04-01",
+              "apiVersion": "2025-03-01",
               "name": "[format('asp-{0}-bot', parameters('appName'))]",
               "location": "[resourceGroup().location]",
               "sku": {
@@ -2485,7 +2488,7 @@
             },
             {
               "type": "Microsoft.Web/sites",
-              "apiVersion": "2024-04-01",
+              "apiVersion": "2025-03-01",
               "name": "[variables('botAppServiceName')]",
               "location": "[resourceGroup().location]",
               "kind": "app",
@@ -2549,7 +2552,7 @@
             {
               "condition": "[not(empty(parameters('authClientId')))]",
               "type": "Microsoft.Web/sites/config",
-              "apiVersion": "2024-11-01",
+              "apiVersion": "2025-03-01",
               "name": "[format('{0}/{1}', variables('botAppServiceName'), 'authsettingsV2')]",
               "properties": {
                 "globalValidation": {
@@ -2557,7 +2560,7 @@
                   "unauthenticatedClientAction": "Return401",
                   "excludedPaths": [
                     "/api/messages",
-                    "/healthz",
+                    "/health",
                     "/.well-known/health"
                   ]
                 },
@@ -2591,7 +2594,7 @@
             {
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
-              "scope": "[format('Microsoft.KeyVault/vaults/{0}', parameters('keyVaultName'))]",
+              "scope": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
               "name": "[guid(subscription().id, resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), resourceId('Microsoft.Web/sites', variables('botAppServiceName')), 'Key Vault Secrets User')]",
               "properties": {
                 "principalId": "[parameters('userAssignedIdentityPrincipalId')]",
@@ -2605,7 +2608,7 @@
             {
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
-              "scope": "[format('Microsoft.KeyVault/vaults/{0}', parameters('keyVaultName'))]",
+              "scope": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
               "name": "[guid(subscription().id, resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), resourceId('Microsoft.Web/sites', variables('botAppServiceName')), 'Key Vault Reader')]",
               "properties": {
                 "principalId": "[parameters('userAssignedIdentityPrincipalId')]",
@@ -2619,7 +2622,7 @@
             {
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
-              "scope": "[format('Microsoft.Insights/components/{0}', variables('appinsightsName'))]",
+              "scope": "[resourceId('Microsoft.Insights/components', variables('appinsightsName'))]",
               "name": "[guid(subscription().id, resourceId('Microsoft.Insights/components', variables('appinsightsName')), resourceId('Microsoft.Web/sites', variables('botAppServiceName')), 'Monitoring Metrics Publisher')]",
               "properties": {
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('monitoringMetricsPublisherId'))]",
@@ -2634,7 +2637,7 @@
             {
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
-              "scope": "[format('Microsoft.Web/sites/{0}', variables('botAppServiceName'))]",
+              "scope": "[resourceId('Microsoft.Web/sites', variables('botAppServiceName'))]",
               "name": "[variables('botAppServiceName')]",
               "properties": {
                 "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logWorkspaceName'))]",
@@ -2663,7 +2666,7 @@
             },
             "botAppServiceHostName": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Web/sites', variables('botAppServiceName')), '2024-04-01').defaultHostName]"
+              "value": "[reference(resourceId('Microsoft.Web/sites', variables('botAppServiceName')), '2025-03-01').defaultHostName]"
             },
             "appinsightsName": {
               "type": "string",
@@ -2690,7 +2693,7 @@
     {
       "condition": "[parameters('enableBotService')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "botService",
       "properties": {
         "expressionEvaluationOptions": {
@@ -2704,7 +2707,9 @@
           "botDisplayName": {
             "value": "[parameters('botDisplayName')]"
           },
-          "botEndpointHostName": "[if(parameters('enableBotService'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'botAppService'), '2022-09-01').outputs.botAppServiceHostName.value), createObject('value', ''))]",
+          "botEndpointHostName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'botAppService'), '2025-04-01').outputs.botAppServiceHostName.value]"
+          },
           "environmentName": {
             "value": "[parameters('environmentName')]"
           },
@@ -2712,11 +2717,13 @@
             "value": "[parameters('projectName')]"
           },
           "logWorkspaceName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log'), '2022-09-01').outputs.logWorkspaceName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log'), '2025-04-01').outputs.logWorkspaceName.value]"
           },
-          "userAssignedIdentityId": "[if(parameters('enableBotService'), createObject('value', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('botIdentityName'))), createObject('value', ''))]",
+          "userAssignedIdentityId": {
+            "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('botIdentityName'))]"
+          },
           "msaAppId": {
-            "value": "[parameters('botMsaAppId')]"
+            "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('botIdentityName')), '2024-11-30').clientId]"
           },
           "skuName": {
             "value": "[parameters('botSkuName')]"
@@ -2736,8 +2743,12 @@
           "ssoScopes": {
             "value": "[parameters('botSsoScopes')]"
           },
-          "appInsightsKey": "[if(parameters('enableBotService'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'botAppService'), '2022-09-01').outputs.appinsightsInstrumentationKey.value), createObject('value', ''))]",
-          "appInsightsAppId": "[if(parameters('enableBotService'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'botAppService'), '2022-09-01').outputs.appinsightsAppId.value), createObject('value', ''))]"
+          "appInsightsKey": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'botAppService'), '2025-04-01').outputs.appinsightsInstrumentationKey.value]"
+          },
+          "appInsightsAppId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'botAppService'), '2025-04-01').outputs.appinsightsAppId.value]"
+          }
         },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -2745,8 +2756,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.34.44.8038",
-              "templateHash": "15927041427591130138"
+              "version": "0.41.2.15936",
+              "templateHash": "9959911701318246369"
             }
           },
           "parameters": {
@@ -2931,7 +2942,7 @@
             {
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
-              "scope": "[format('Microsoft.BotService/botServices/{0}', parameters('botServiceName'))]",
+              "scope": "[resourceId('Microsoft.BotService/botServices', parameters('botServiceName'))]",
               "name": "[parameters('botServiceName')]",
               "properties": {
                 "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logWorkspaceName'))]",
@@ -2978,7 +2989,7 @@
     {
       "condition": "[parameters('enableFrontDoor')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "frontdoor",
       "properties": {
         "expressionEvaluationOptions": {
@@ -3005,8 +3016,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.34.44.8038",
-              "templateHash": "2553132896186998814"
+              "version": "0.41.2.15936",
+              "templateHash": "18182119108725581936"
             }
           },
           "parameters": {
@@ -3155,7 +3166,7 @@
     {
       "condition": "[parameters('enableAppService')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "netapp",
       "properties": {
         "expressionEvaluationOptions": {
@@ -3173,16 +3184,16 @@
             "value": "[parameters('environmentName')]"
           },
           "keyVaultName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'vault'), '2022-09-01').outputs.keyVaultName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'vault'), '2025-04-01').outputs.keyVaultName.value]"
           },
           "logWorkspaceName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log'), '2022-09-01').outputs.logWorkspaceName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log'), '2025-04-01').outputs.logWorkspaceName.value]"
           },
           "projectName": {
             "value": "[parameters('projectName')]"
           },
           "vnetName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'network'), '2022-09-01').outputs.vnetName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'network'), '2025-04-01').outputs.vnetName.value]"
           },
           "webSubnetName": {
             "value": "[variables('webSubnetName')]"
@@ -3193,8 +3204,8 @@
           "authClientSecret": {
             "value": "[parameters('authClientSecret')]"
           },
-          "frontDoorId": "[if(parameters('enableFrontDoor'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'frontdoor'), '2022-09-01').outputs.frontDoorId.value), createObject('value', ''))]",
-          "frontDoorUrl": "[if(parameters('enableFrontDoor'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'frontdoor'), '2022-09-01').outputs.frontDoorUrl.value), createObject('value', ''))]"
+          "frontDoorId": "[if(parameters('enableFrontDoor'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'frontdoor'), '2025-04-01').outputs.frontDoorId.value), createObject('value', ''))]",
+          "frontDoorUrl": "[if(parameters('enableFrontDoor'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'frontdoor'), '2025-04-01').outputs.frontDoorUrl.value), createObject('value', ''))]"
         },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -3202,8 +3213,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.34.44.8038",
-              "templateHash": "2673749424373928760"
+              "version": "0.41.2.15936",
+              "templateHash": "10665469913432762960"
             }
           },
           "parameters": {
@@ -3316,7 +3327,7 @@
           "resources": [
             {
               "type": "Microsoft.Web/sites/config",
-              "apiVersion": "2024-04-01",
+              "apiVersion": "2025-03-01",
               "name": "[format('{0}/{1}', variables('appServiceName'), 'appsettings')]",
               "properties": {
                 "APPINSIGHTS_INSTRUMENTATIONKEY": "[reference(resourceId('Microsoft.Insights/components', variables('appinsightsName')), '2020-02-02').InstrumentationKey]",
@@ -3353,7 +3364,7 @@
             },
             {
               "type": "Microsoft.Web/serverfarms",
-              "apiVersion": "2024-04-01",
+              "apiVersion": "2025-03-01",
               "name": "[format('asp-{0}', parameters('appName'))]",
               "location": "[resourceGroup().location]",
               "sku": {
@@ -3367,7 +3378,7 @@
             },
             {
               "type": "Microsoft.Web/sites",
-              "apiVersion": "2024-04-01",
+              "apiVersion": "2025-03-01",
               "name": "[variables('appServiceName')]",
               "location": "[resourceGroup().location]",
               "kind": "app",
@@ -3428,7 +3439,7 @@
             {
               "condition": "[variables('useAuth')]",
               "type": "Microsoft.Web/sites/config",
-              "apiVersion": "2024-11-01",
+              "apiVersion": "2025-03-01",
               "name": "[format('{0}/{1}', variables('appServiceName'), 'authsettingsV2')]",
               "properties": "[union(createObject('globalValidation', createObject('requireAuthentication', true(), 'unauthenticatedClientAction', 'RedirectToLoginPage'), 'platform', createObject('enabled', true(), 'runtimeVersion', '2'), 'identityProviders', createObject('azureActiveDirectory', createObject('enabled', true(), 'registration', createObject('clientId', parameters('authClientId'), 'clientSecretSettingName', 'ENTRAID_AUTH_AAD_SECRET', 'openIdIssuer', format('https://sts.windows.net/{0}/v2.0', tenant().tenantId)), 'validation', if(variables('useFrontDoor'), createObject('allowedAudiences', createArray(parameters('frontDoorUrl'))), createObject())))), if(variables('useFrontDoor'), createObject('httpSettings', createObject('requireHttps', true(), 'forwardProxy', createObject('convention', 'Standard')), 'login', createObject('allowedExternalRedirectUrls', createArray(format('{0}/.auth/login/aad/callback', parameters('frontDoorUrl'))))), createObject()))]",
               "dependsOn": [
@@ -3438,10 +3449,10 @@
             {
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
-              "scope": "[format('Microsoft.KeyVault/vaults/{0}', parameters('keyVaultName'))]",
+              "scope": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
               "name": "[guid(subscription().id, resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), resourceId('Microsoft.Web/sites', variables('appServiceName')), 'Key Vault Secrets User')]",
               "properties": {
-                "principalId": "[reference(resourceId('Microsoft.Web/sites', variables('appServiceName')), '2024-04-01', 'full').identity.principalId]",
+                "principalId": "[reference(resourceId('Microsoft.Web/sites', variables('appServiceName')), '2025-03-01', 'full').identity.principalId]",
                 "principalType": "ServicePrincipal",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('keyVaultSecretsUserRoleId'))]"
               },
@@ -3452,10 +3463,10 @@
             {
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
-              "scope": "[format('Microsoft.KeyVault/vaults/{0}', parameters('keyVaultName'))]",
+              "scope": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
               "name": "[guid(subscription().id, resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), resourceId('Microsoft.Web/sites', variables('appServiceName')), 'Key Vault Reader')]",
               "properties": {
-                "principalId": "[reference(resourceId('Microsoft.Web/sites', variables('appServiceName')), '2024-04-01', 'full').identity.principalId]",
+                "principalId": "[reference(resourceId('Microsoft.Web/sites', variables('appServiceName')), '2025-03-01', 'full').identity.principalId]",
                 "principalType": "ServicePrincipal",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('keyVaultReaderRoleId'))]"
               },
@@ -3466,11 +3477,11 @@
             {
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
-              "scope": "[format('Microsoft.Insights/components/{0}', variables('appinsightsName'))]",
+              "scope": "[resourceId('Microsoft.Insights/components', variables('appinsightsName'))]",
               "name": "[guid(subscription().id, resourceId('Microsoft.Insights/components', variables('appinsightsName')), resourceId('Microsoft.Web/sites', variables('appServiceName')), 'Monitoring Metrics Publisher')]",
               "properties": {
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('monitoringMetricsPublisherId'))]",
-                "principalId": "[reference(resourceId('Microsoft.Web/sites', variables('appServiceName')), '2024-04-01', 'full').identity.principalId]",
+                "principalId": "[reference(resourceId('Microsoft.Web/sites', variables('appServiceName')), '2025-03-01', 'full').identity.principalId]",
                 "principalType": "ServicePrincipal"
               },
               "dependsOn": [
@@ -3481,7 +3492,7 @@
             {
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
-              "scope": "[format('Microsoft.Web/sites/{0}', variables('appServiceName'))]",
+              "scope": "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]",
               "name": "[variables('appServiceName')]",
               "properties": {
                 "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logWorkspaceName'))]",
@@ -3514,7 +3525,7 @@
             },
             "appServiceHostName": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Web/sites', variables('appServiceName')), '2024-04-01').defaultHostName]"
+              "value": "[reference(resourceId('Microsoft.Web/sites', variables('appServiceName')), '2025-03-01').defaultHostName]"
             }
           }
         }
@@ -3529,7 +3540,7 @@
     {
       "condition": "[and(parameters('enableFrontDoor'), parameters('enableAppService'))]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "frontDoorOrigin",
       "properties": {
         "expressionEvaluationOptions": {
@@ -3538,22 +3549,16 @@
         "mode": "Incremental",
         "parameters": {
           "appHostName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'netapp'), '2022-09-01').outputs.appServiceHostName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'netapp'), '2025-04-01').outputs.appServiceHostName.value]"
           },
           "customDomainHost": {
             "value": "[parameters('customDomainHost')]"
           },
           "frontDoorName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'frontdoor'), '2022-09-01').outputs.frontDoorName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'frontdoor'), '2025-04-01').outputs.frontDoorName.value]"
           },
           "frontDoorEndpointName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'frontdoor'), '2022-09-01').outputs.frontDoorEndpointName.value]"
-          },
-          "environmentName": {
-            "value": "[parameters('environmentName')]"
-          },
-          "projectName": {
-            "value": "[parameters('projectName')]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'frontdoor'), '2025-04-01').outputs.frontDoorEndpointName.value]"
           }
         },
         "template": {
@@ -3562,17 +3567,11 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.34.44.8038",
-              "templateHash": "14554068664754381072"
+              "version": "0.41.2.15936",
+              "templateHash": "12432953331763040764"
             }
           },
           "parameters": {
-            "environmentName": {
-              "type": "string"
-            },
-            "projectName": {
-              "type": "string"
-            },
             "appHostName": {
               "type": "string"
             },
@@ -3668,7 +3667,7 @@
     {
       "condition": "[parameters('enableAlerts')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "actionGroup",
       "properties": {
         "expressionEvaluationOptions": {
@@ -3698,8 +3697,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.34.44.8038",
-              "templateHash": "17907632247379385937"
+              "version": "0.41.2.15936",
+              "templateHash": "9639859056780488810"
             }
           },
           "parameters": {
@@ -3722,7 +3721,7 @@
           "resources": [
             {
               "type": "Microsoft.Insights/actionGroups",
-              "apiVersion": "2024-10-01-preview",
+              "apiVersion": "2023-01-01",
               "name": "[parameters('actionGroupName')]",
               "location": "Global",
               "properties": {
@@ -3747,7 +3746,7 @@
     {
       "condition": "[and(parameters('enableAlerts'), parameters('enableFunctionApp'))]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "logalertNetFa",
       "properties": {
         "expressionEvaluationOptions": {
@@ -3759,7 +3758,7 @@
             "value": "[variables('actionGroupName')]"
           },
           "alertRuleName": {
-            "value": "[format('ar-{0}-failures', reference(resourceId('Microsoft.Resources/deployments', 'netfa'), '2022-09-01').outputs.functionAppName.value)]"
+            "value": "[format('ar-{0}-failures', reference(resourceId('Microsoft.Resources/deployments', 'netfa'), '2025-04-01').outputs.functionAppName.value)]"
           },
           "alertRuleQuery": {
             "value": "(traces | where severityLevel == 3 or severityLevel == 4 | project timestamp, message, operation_Id) | union (exceptions | project timestamp, outerMessage, operation_Id)"
@@ -3768,10 +3767,10 @@
             "value": 1
           },
           "alertRuleTitle": {
-            "value": "[format('Error occured in {0}', reference(resourceId('Microsoft.Resources/deployments', 'netfa'), '2022-09-01').outputs.functionAppName.value)]"
+            "value": "[format('Error occured in {0}', reference(resourceId('Microsoft.Resources/deployments', 'netfa'), '2025-04-01').outputs.functionAppName.value)]"
           },
           "appinsightsName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'netfa'), '2022-09-01').outputs.appinsightsName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'netfa'), '2025-04-01').outputs.appinsightsName.value]"
           },
           "environmentName": {
             "value": "[parameters('environmentName')]"
@@ -3786,8 +3785,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.34.44.8038",
-              "templateHash": "12873780186745045209"
+              "version": "0.41.2.15936",
+              "templateHash": "6868199801701201304"
             }
           },
           "parameters": {
@@ -3819,7 +3818,7 @@
           "resources": [
             {
               "type": "Microsoft.Insights/scheduledQueryRules",
-              "apiVersion": "2025-01-01-preview",
+              "apiVersion": "2026-03-01",
               "name": "[parameters('alertRuleName')]",
               "location": "[resourceGroup().location]",
               "kind": "LogAlert",
@@ -3873,7 +3872,7 @@
     {
       "condition": "[and(parameters('enableAlerts'), parameters('enableAppService'))]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "logalertApp",
       "properties": {
         "expressionEvaluationOptions": {
@@ -3885,7 +3884,7 @@
             "value": "[variables('actionGroupName')]"
           },
           "alertRuleName": {
-            "value": "[format('ar-{0}-failures', reference(resourceId('Microsoft.Resources/deployments', 'netapp'), '2022-09-01').outputs.appServiceName.value)]"
+            "value": "[format('ar-{0}-failures', reference(resourceId('Microsoft.Resources/deployments', 'netapp'), '2025-04-01').outputs.appServiceName.value)]"
           },
           "alertRuleQuery": {
             "value": "(traces | where severityLevel == 3 or severityLevel == 4 | project timestamp, message, operation_Id) | union (exceptions | project timestamp, outerMessage, operation_Id)"
@@ -3894,10 +3893,10 @@
             "value": 1
           },
           "alertRuleTitle": {
-            "value": "[format('Error occured in {0}', reference(resourceId('Microsoft.Resources/deployments', 'netapp'), '2022-09-01').outputs.appServiceName.value)]"
+            "value": "[format('Error occured in {0}', reference(resourceId('Microsoft.Resources/deployments', 'netapp'), '2025-04-01').outputs.appServiceName.value)]"
           },
           "appinsightsName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'netapp'), '2022-09-01').outputs.appinsightsName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'netapp'), '2025-04-01').outputs.appinsightsName.value]"
           },
           "environmentName": {
             "value": "[parameters('environmentName')]"
@@ -3912,8 +3911,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.34.44.8038",
-              "templateHash": "12873780186745045209"
+              "version": "0.41.2.15936",
+              "templateHash": "6868199801701201304"
             }
           },
           "parameters": {
@@ -3945,7 +3944,7 @@
           "resources": [
             {
               "type": "Microsoft.Insights/scheduledQueryRules",
-              "apiVersion": "2025-01-01-preview",
+              "apiVersion": "2026-03-01",
               "name": "[parameters('alertRuleName')]",
               "location": "[resourceGroup().location]",
               "kind": "LogAlert",
@@ -3999,7 +3998,7 @@
     {
       "condition": "[and(parameters('enableAlerts'), parameters('enableBotService'))]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "logalertBot",
       "properties": {
         "expressionEvaluationOptions": {
@@ -4011,7 +4010,7 @@
             "value": "[variables('actionGroupName')]"
           },
           "alertRuleName": {
-            "value": "[format('ar-{0}-failures', reference(resourceId('Microsoft.Resources/deployments', 'botAppService'), '2022-09-01').outputs.botAppServiceName.value)]"
+            "value": "[format('ar-{0}-failures', reference(resourceId('Microsoft.Resources/deployments', 'botAppService'), '2025-04-01').outputs.botAppServiceName.value)]"
           },
           "alertRuleQuery": {
             "value": "(traces | where severityLevel == 3 or severityLevel == 4 | project timestamp, message, operation_Id) | union (exceptions | project timestamp, outerMessage, operation_Id)"
@@ -4020,10 +4019,10 @@
             "value": 1
           },
           "alertRuleTitle": {
-            "value": "[format('Error occured in {0}', reference(resourceId('Microsoft.Resources/deployments', 'botAppService'), '2022-09-01').outputs.botAppServiceName.value)]"
+            "value": "[format('Error occured in {0}', reference(resourceId('Microsoft.Resources/deployments', 'botAppService'), '2025-04-01').outputs.botAppServiceName.value)]"
           },
           "appinsightsName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'botAppService'), '2022-09-01').outputs.appinsightsName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'botAppService'), '2025-04-01').outputs.appinsightsName.value]"
           },
           "environmentName": {
             "value": "[parameters('environmentName')]"
@@ -4038,8 +4037,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.34.44.8038",
-              "templateHash": "12873780186745045209"
+              "version": "0.41.2.15936",
+              "templateHash": "6868199801701201304"
             }
           },
           "parameters": {
@@ -4071,7 +4070,7 @@
           "resources": [
             {
               "type": "Microsoft.Insights/scheduledQueryRules",
-              "apiVersion": "2025-01-01-preview",
+              "apiVersion": "2026-03-01",
               "name": "[parameters('alertRuleName')]",
               "location": "[resourceGroup().location]",
               "kind": "LogAlert",
@@ -4125,7 +4124,7 @@
     {
       "condition": "[parameters('enableAlerts')]",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
+      "apiVersion": "2025-04-01",
       "name": "activityAlert",
       "properties": {
         "expressionEvaluationOptions": {
@@ -4152,8 +4151,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.34.44.8038",
-              "templateHash": "5857332353088671860"
+              "version": "0.41.2.15936",
+              "templateHash": "5694940959562827980"
             }
           },
           "parameters": {
@@ -4173,7 +4172,7 @@
           "resources": [
             {
               "type": "Microsoft.Insights/activityLogAlerts",
-              "apiVersion": "2023-01-01-preview",
+              "apiVersion": "2020-10-01",
               "name": "[parameters('alertRuleName')]",
               "location": "global",
               "properties": {

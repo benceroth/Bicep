@@ -5,7 +5,7 @@ param logWorkspaceName string
 param logCapacityPerDay int
 
 
-resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2025-02-01' = {
   name: logWorkspaceName
   location: resourceGroup().location
   properties: any({

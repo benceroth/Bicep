@@ -42,11 +42,11 @@ var keyVaultSecretsUserRoleId = '4633458b-17de-408a-b874-0445c86b69e6'
 var monitoringMetricsPublisherId = '3913510d-42f4-4e42-8a64-420c390055eb'
 
 // ── Existing resources ──
-resource logWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' existing = {
+resource logWorkspace 'Microsoft.OperationalInsights/workspaces@2025-02-01' existing = {
   name: logWorkspaceName
 }
 
-resource vault 'Microsoft.KeyVault/vaults@2024-12-01-preview' existing = {
+resource vault 'Microsoft.KeyVault/vaults@2025-05-01' existing = {
   name: keyVaultName
 }
 
@@ -67,7 +67,7 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
 }
 
 // ── App Service Plan ──
-resource appServicePlan 'Microsoft.Web/serverfarms@2024-04-01' = {
+resource appServicePlan 'Microsoft.Web/serverfarms@2025-03-01' = {
   name: 'asp-${appName}'
   location: resourceGroup().location
   sku: {
@@ -112,7 +112,7 @@ var defaultIpRestrictions = [
 ]
 
 // ── App Service ──
-resource appService 'Microsoft.Web/sites@2024-04-01' = {
+resource appService 'Microsoft.Web/sites@2025-03-01' = {
   name: appServiceName
   location: resourceGroup().location
   kind: 'app'
@@ -184,7 +184,7 @@ resource appService 'Microsoft.Web/sites@2024-04-01' = {
 }
 
 // ── Auth settings (single resource, conditionally includes Front Door properties) ──
-resource authSettings 'Microsoft.Web/sites/config@2024-11-01' = if (useAuth) {
+resource authSettings 'Microsoft.Web/sites/config@2025-03-01' = if (useAuth) {
   parent: appService
   name: 'authsettingsV2'
   properties: union(

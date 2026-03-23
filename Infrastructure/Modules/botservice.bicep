@@ -52,7 +52,7 @@ param appInsightsAppId string = ''
 var entraIdServiceProviderId = '30dd229c-58e3-4a48-bdfd-91ec48eb906c'
 
 // ── Existing resources ──
-resource logWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' existing = {
+resource logWorkspace 'Microsoft.OperationalInsights/workspaces@2025-02-01' existing = {
   name: logWorkspaceName
 }
 

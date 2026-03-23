@@ -9,7 +9,7 @@ param actionGroupName string
 param environmentName string
 param projectName string
 
-resource alertRule 'Microsoft.Insights/scheduledQueryRules@2025-01-01-preview' = {
+resource alertRule 'Microsoft.Insights/scheduledQueryRules@2026-03-01' = {
   name: alertRuleName
   location: resourceGroup().location
   kind: 'LogAlert'

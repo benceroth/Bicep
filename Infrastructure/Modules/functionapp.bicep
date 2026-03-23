@@ -47,20 +47,20 @@ var monitoringMetricsPublisherId = '3913510d-42f4-4e42-8a64-420c390055eb'
 var serviceBusDataReceiverRoleId = '4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0'
 
 // ── Existing resources ──
-resource logWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' existing = {
+resource logWorkspace 'Microsoft.OperationalInsights/workspaces@2025-02-01' existing = {
   name: logWorkspaceName
 }
 
-resource vault 'Microsoft.KeyVault/vaults@2024-12-01-preview' existing = {
+resource vault 'Microsoft.KeyVault/vaults@2025-05-01' existing = {
   name: keyVaultName
 }
 
-resource storageAccount 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
+resource storageAccount 'Microsoft.Storage/storageAccounts@2025-01-01' existing = {
   name: storageAccountName
 }
 
 // ── User Assigned Identity (created only when identityType == 'UserAssigned') ──
-resource userAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = if (!isSystemAssigned) {
+resource userAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = if (!isSystemAssigned) {
   name: 'uai-data-owner-${appName}'
   location: resourceGroup().location
 }
@@ -82,7 +82,7 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
 }
 
 // ── App Service Plan ──
-resource appServicePlan 'Microsoft.Web/serverfarms@2024-04-01' = {
+resource appServicePlan 'Microsoft.Web/serverfarms@2025-03-01' = {
   name: 'asp-${appName}'
   location: resourceGroup().location
   sku: {
@@ -116,15 +116,15 @@ var systemAssignedSettings = {
 }
 
 var userAssignedSettings = {
-  APPLICATIONINSIGHTS_AUTHENTICATION_STRING: 'Authorization=AAD;ClientId=${isSystemAssigned ? '' : userAssignedIdentity.properties.clientId}'
-  AzureWebJobsStorage__clientId: isSystemAssigned ? '' : userAssignedIdentity.properties.clientId
+  APPLICATIONINSIGHTS_AUTHENTICATION_STRING: 'Authorization=AAD;ClientId=${isSystemAssigned ? '' : userAssignedIdentity!.properties.clientId}'
+  AzureWebJobsStorage__clientId: isSystemAssigned ? '' : userAssignedIdentity!.properties.clientId
 }
 
 var identitySpecificSettings = isSystemAssigned ? systemAssignedSettings : userAssignedSettings
 var mergedAppSettings = union(baseAppSettings, identitySpecificSettings, appSettings)
 
 // ── Function App ──
-resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
+resource functionApp 'Microsoft.Web/sites@2025-03-01' = {
   name: functionAppName
   location: resourceGroup().location
   kind: 'functionapp,windows'
@@ -195,7 +195,7 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
 // ── Principal ID used for RBAC ──
 var principalId = isSystemAssigned
   ? functionApp.identity.principalId
-  : userAssignedIdentity.properties.principalId
+  : userAssignedIdentity!.properties.principalId
 
 // ── RBAC: Storage Blob Data Contributor ──
 resource roleAssignmentBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
@@ -242,11 +242,11 @@ resource roleAssignmentKeyVaultReaderUser 'Microsoft.Authorization/roleAssignmen
 }
 
 // ── Cosmos DB SQL Role Assignment (Contributor) ──
-resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-12-01-preview' existing = if (cosmosAccountName != '') {
+resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2025-04-15' existing = if (cosmosAccountName != '') {
   name: cosmosAccountName
 }
 
-resource cosmosRoleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-12-01-preview' = if (cosmosAccountName != '') {
+resource cosmosRoleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2025-04-15' = if (cosmosAccountName != '') {
   parent: cosmosAccount
   name: guid(cosmosAccount.id, functionApp.id, 'Cosmos DB Contributor')
   properties: {

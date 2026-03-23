@@ -33,16 +33,15 @@ param logCapacityPerDay = 5
 
 // ── Function App ──
 param functionAppRuntime = 'dotnet-isolated'
-param functionAppRuntimeVersion = '8.0'
+param functionAppRuntimeVersion = '10.0'
 param functionAppIdentityType = 'SystemAssigned'
 
 // ── App Service ──
-param appServiceRuntimeVersion = 'v8.0'
+param appServiceRuntimeVersion = 'v10.0'
 
 // ── Auth — overwrite in pipeline ──
 param authClientId = ''
 param authClientSecret = ''
 
 // ── Bot Service — overwrite in pipeline ──
-param botMsaAppId = ''
 param botAuthClientSecret = ''

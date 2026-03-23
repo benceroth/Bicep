@@ -7,15 +7,15 @@ param vnetName string
 param peSubnetName string
 param logWorkspaceName string
 
-resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' existing = {
+resource virtualNetwork 'Microsoft.Network/virtualNetworks@2025-05-01' existing = {
   name: vnetName
 }
 
-resource logWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' existing = {
+resource logWorkspace 'Microsoft.OperationalInsights/workspaces@2025-02-01' existing = {
   name: logWorkspaceName
 }
 
-resource storageAccount 'Microsoft.Storage/storageAccounts@2024-01-01' = {
+resource storageAccount 'Microsoft.Storage/storageAccounts@2025-01-01' = {
   name: storageAccountName
   location: resourceGroup().location
   kind: 'StorageV2'
@@ -63,13 +63,13 @@ resource diagnosticsStorage 'Microsoft.Insights/diagnosticSettings@2021-05-01-pr
   }
 }
 
-resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2021-06-01' = {
+resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2025-01-01' = {
   parent: storageAccount
   name: 'default'
   properties: {}
 }
 
-resource storageAccountPrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' = {
+resource storageAccountPrivateEndpoint 'Microsoft.Network/privateEndpoints@2025-05-01' = {
   name: 'pe-${storageAccountName}'
   location: resourceGroup().location
   properties: {
@@ -94,7 +94,7 @@ resource storageAccountPrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-
   }
 }
 
-resource storageAccountPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+resource storageAccountPrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = {
   name: 'privatelink.blob.${environment().suffixes.storage}'
   location: 'global'
   properties: {}
@@ -107,7 +107,7 @@ resource storageAccountPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06
   }
 }
 
-resource storageAccountPrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+resource storageAccountPrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = {
   parent: storageAccountPrivateDnsZone
   name: 'pdz-${storageAccountName}-link'
   location: 'global'
@@ -123,7 +123,7 @@ resource storageAccountPrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/vir
   }
 }
 
-resource pvtEndpointDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2021-05-01' = {
+resource pvtEndpointDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2025-05-01' = {
   parent: storageAccountPrivateEndpoint
   name: 'pdzg-${storageAccountName}'
   properties: {
@@ -152,7 +152,7 @@ resource diagnosticsBlob 'Microsoft.Insights/diagnosticSettings@2021-05-01-previ
   }
 }
 
-resource fileService 'Microsoft.Storage/storageAccounts/fileServices@2021-06-01' = {
+resource fileService 'Microsoft.Storage/storageAccounts/fileServices@2025-01-01' = {
   parent: storageAccount
   name: 'default'
   properties: {}
@@ -172,7 +172,7 @@ resource diagnosticsFile 'Microsoft.Insights/diagnosticSettings@2021-05-01-previ
   }
 }
 
-resource queueService 'Microsoft.Storage/storageAccounts/queueServices@2021-06-01' = {
+resource queueService 'Microsoft.Storage/storageAccounts/queueServices@2025-01-01' = {
   parent: storageAccount
   name: 'default'
   properties: {}
@@ -192,7 +192,7 @@ resource diagnosticsQueue 'Microsoft.Insights/diagnosticSettings@2021-05-01-prev
   }
 }
 
-resource tableService 'Microsoft.Storage/storageAccounts/tableServices@2021-06-01' = {
+resource tableService 'Microsoft.Storage/storageAccounts/tableServices@2025-01-01' = {
   parent: storageAccount
   name: 'default'
   properties: {}
@@ -201,7 +201,7 @@ resource tableService 'Microsoft.Storage/storageAccounts/tableServices@2021-06-0
 output storageAccountId string = storageAccount.id
 output storageAccountName string = storageAccount.name
 
-resource storageAccountTablePrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' = {
+resource storageAccountTablePrivateEndpoint 'Microsoft.Network/privateEndpoints@2025-05-01' = {
   name: 'pe-${storageAccountName}-table'
   location: resourceGroup().location
   properties: {
@@ -226,7 +226,7 @@ resource storageAccountTablePrivateEndpoint 'Microsoft.Network/privateEndpoints@
   }
 }
 
-resource storageAccountTablePrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+resource storageAccountTablePrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = {
   name: 'privatelink.table.${environment().suffixes.storage}'
   location: 'global'
   properties: {}
@@ -239,7 +239,7 @@ resource storageAccountTablePrivateDnsZone 'Microsoft.Network/privateDnsZones@20
   }
 }
 
-resource storageAccountTablePrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+resource storageAccountTablePrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = {
   parent: storageAccountTablePrivateDnsZone
   name: 'pdz-${storageAccountName}-table-link'
   location: 'global'
@@ -255,7 +255,7 @@ resource storageAccountTablePrivateDnsZoneLink 'Microsoft.Network/privateDnsZone
   }
 }
 
-resource pvtEndpointTableDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2021-05-01' = {
+resource pvtEndpointTableDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2025-05-01' = {
   parent: storageAccountTablePrivateEndpoint
   name: 'pdzg-${storageAccountName}-table'
   properties: {
