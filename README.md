@@ -7,7 +7,7 @@ Clone the entire repo for each use-case, customise the parameter files for your 
 
 ## Key Features
 - Modular Bicep architecture for scalability and reuse
-- **Feature flags** — enable/disable components (Cosmos, Function App, App Service, Front Door, Alerts)
+- **Feature flags** — enable/disable components (Cosmos, Function App, App Service, Front Door, Alerts, Service Bus, Bot Service)
 - **Consolidated modules** — single `functionapp.bicep` and `appservice.bicep` replace multiple variants
 - **Environment overlays** — parameter files per environment (`dev`, `staging`, `prod`)
 - Secure-by-default configurations & least privilege RBAC
@@ -30,7 +30,9 @@ Infrastructure/
 │   └── prod.bicepparam         # Production environment
 ├── Modules/
 │   ├── functionapp.bicep       # Unified Function App (MI/UAI, dotnet/powershell)
-│   └── appservice.bicep        # Unified App Service (±Front Door, ±auth)
+│   ├── appservice.bicep        # Unified App Service (±Front Door, ±auth)
+│   ├── botappservice.bicep     # Dedicated Bot Host App Service (.NET 10)
+│   └── botservice.bicep        # Azure Bot Service + Teams + SSO
 ├── Data/
 │   ├── log.bicep               # Log Analytics workspace
 │   ├── storage.bicep           # Storage Account + private endpoints
@@ -64,6 +66,7 @@ Toggle components in your parameter file or via CLI overrides:
 | `enableFrontDoor`   | `true`  | Deploy Azure Front Door and WAF          |
 | `enableAlerts`      | `true`  | Deploy alert rules and action groups     |
 | `enableServiceBus`  | `false` | Deploy Azure Service Bus namespace       |
+| `enableBotService`  | `false` | Deploy Azure Bot Service with dedicated host |
 
 Example — deploy without Cosmos or Front Door:
 
@@ -169,6 +172,25 @@ Core modules now expose outputs for downstream consumption:
 | `Security/frontdoor.bicep`| `frontDoorName`, `frontDoorEndpointName`, `frontDoorId`, `frontDoorUrl` |
 | `Modules/functionapp.bicep`| `appinsightsName`, `functionAppName`, `functionAppPrincipalId` |
 | `Modules/appservice.bicep`| `appinsightsName`, `appServiceName`, `appServiceHostName` |
+| `Modules/botappservice.bicep`| `botAppServiceName`, `botAppServiceHostName`, `appinsightsName`, `appinsightsInstrumentationKey`, `appinsightsAppId` |
+| `Modules/botservice.bicep`| `botServiceId`, `botServiceName`, `botMessagingEndpoint` |
+
+---
+
+## Bot Service — Post-Deploy Steps
+
+The Bot Service uses a **user-assigned managed identity** for runtime authentication and a **separate Entra ID app registration** for Teams channel / SSO.
+
+After deployment, you must manually configure a **Federated Identity Credential** on the Entra ID app registration used as the bot identity (`botMsaAppId`):
+
+1. Navigate to **Azure Portal → Entra ID → App registrations → (your bot app) → Certificates & secrets → Federated credentials**.
+2. Add a federated credential with:
+   - **Federated credential scenario:** *Managed identity*
+   - **Managed identity:** select the `uai-bot-<projectName>` identity created by the deployment.
+   - **Issuer / Subject / Audience:** populated automatically.
+3. Once saved the Bot Service can exchange tokens via the managed identity without storing secrets.
+
+For SSO connections, also ensure the `botSsoClientId` app registration has the redirect URIs documented in the [Azure Bot SSO guide](https://learn.microsoft.com/en-us/azure/bot-service/bot-builder-concept-identity-providers).
 
 ---
 

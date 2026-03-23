@@ -14,6 +14,7 @@ param enableAppService = true
 param enableFrontDoor = true
 param enableAlerts = true
 param enableServiceBus = false
+param enableBotService = false
 
 // ── Cosmos DB ──
 param cosmosContainerName = 'demo'
@@ -41,3 +42,7 @@ param appServiceRuntimeVersion = 'v8.0'
 // ── Auth — overwrite in pipeline or CLI ──
 param authClientId = ''
 param authClientSecret = ''
+
+// ── Bot Service — overwrite in pipeline or CLI ──
+param botMsaAppId = ''
+param botAuthClientSecret = ''

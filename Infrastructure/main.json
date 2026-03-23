@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.34.44.8038",
-      "templateHash": "1552492168821791336"
+      "templateHash": "12728656042190908149"
     }
   },
   "parameters": {
@@ -55,6 +55,13 @@
       "defaultValue": false,
       "metadata": {
         "description": "Deploy Azure Service Bus namespace."
+      }
+    },
+    "enableBotService": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Deploy Azure Bot Service with a dedicated bot host App Service."
       }
     },
     "cosmosContainerName": {
@@ -115,6 +122,87 @@
         "description": "Optional list of Service Bus queue names to create."
       }
     },
+    "botDisplayName": {
+      "type": "string",
+      "defaultValue": "[format('Bot {0}', parameters('projectName'))]",
+      "metadata": {
+        "description": "Display name shown in Teams and the Azure portal."
+      }
+    },
+    "botSkuName": {
+      "type": "string",
+      "defaultValue": "S1",
+      "allowedValues": [
+        "F0",
+        "S1"
+      ],
+      "metadata": {
+        "description": "Bot Service SKU. F0 for free tier, S1 for standard."
+      }
+    },
+    "botMsaAppId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Entra ID app registration client ID used as the bot identity (msaAppId)."
+      }
+    },
+    "botAuthClientSecret": {
+      "type": "securestring",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Entra ID app registration client secret for the bot host platform auth."
+      }
+    },
+    "enableTeamsChannel": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Enable Microsoft Teams channel on the bot."
+      }
+    },
+    "enableBotSsoConnection": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Enable an OAuth SSO connection (Entra ID / Microsoft Graph) on the bot."
+      }
+    },
+    "botSsoClientId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Entra ID app registration client ID for the bot SSO connection (can differ from botMsaAppId)."
+      }
+    },
+    "botSsoClientSecret": {
+      "type": "securestring",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Entra ID app registration client secret for the bot SSO connection."
+      }
+    },
+    "botSsoScopes": {
+      "type": "string",
+      "defaultValue": "openid profile User.Read",
+      "metadata": {
+        "description": "OAuth scopes for the bot SSO connection."
+      }
+    },
+    "botLlmApiEndpoint": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Custom LLM API endpoint URL for the bot Agent SDK."
+      }
+    },
+    "botLlmApiKeySecretName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Key Vault secret name containing the custom LLM API key."
+      }
+    },
     "functionAppIdentityType": {
       "type": "string",
       "defaultValue": "SystemAssigned",
@@ -154,9 +242,22 @@
     "amplsSubnetName": "snet-ampls",
     "cosmosName": "[format('cosmos-{0}', parameters('projectName'))]",
     "serviceBusName": "[format('sb-{0}', parameters('projectName'))]",
+    "botServiceName": "[format('bot-{0}', parameters('projectName'))]",
+    "botIdentityName": "[format('uai-bot-{0}', parameters('projectName'))]",
     "functionAppSettings": "[if(parameters('enableFunctionApp'), createObject('KeyVaultConfig:Name', variables('keyVaultName'), 'AzureWebJobs.FunctionName.Schedule', '0 */5 * * * *', 'Config:CosmosContainer', parameters('cosmosContainerName'), 'Config:MetricsTimeRangeInMinutes', 5, 'Config:MetricTypeMaxCount', 5, 'Config:Subscriptions', null(), 'Config:ResourceGroups', null()), createObject())]"
   },
   "resources": [
+    {
+      "condition": "[parameters('enableBotService')]",
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "apiVersion": "2023-01-31",
+      "name": "[variables('botIdentityName')]",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "Project": "[parameters('projectName')]",
+        "Environment": "[parameters('environmentName')]"
+      }
+    },
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
@@ -2152,6 +2253,729 @@
       ]
     },
     {
+      "condition": "[parameters('enableBotService')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "botAppService",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "environmentName": {
+            "value": "[parameters('environmentName')]"
+          },
+          "projectName": {
+            "value": "[parameters('projectName')]"
+          },
+          "vnetName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'network'), '2022-09-01').outputs.vnetName.value]"
+          },
+          "webSubnetName": {
+            "value": "[variables('webSubnetName')]"
+          },
+          "appName": {
+            "value": "[parameters('projectName')]"
+          },
+          "keyVaultName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'vault'), '2022-09-01').outputs.keyVaultName.value]"
+          },
+          "logWorkspaceName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log'), '2022-09-01').outputs.logWorkspaceName.value]"
+          },
+          "authClientId": {
+            "value": "[parameters('botMsaAppId')]"
+          },
+          "authClientSecret": {
+            "value": "[parameters('botAuthClientSecret')]"
+          },
+          "dotnetVersion": {
+            "value": "v10.0"
+          },
+          "llmApiEndpoint": {
+            "value": "[parameters('botLlmApiEndpoint')]"
+          },
+          "llmApiKeySecretName": {
+            "value": "[parameters('botLlmApiKeySecretName')]"
+          },
+          "userAssignedIdentityId": "[if(parameters('enableBotService'), createObject('value', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('botIdentityName'))), createObject('value', ''))]",
+          "userAssignedIdentityPrincipalId": "[if(parameters('enableBotService'), createObject('value', reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('botIdentityName')), '2023-01-31').principalId), createObject('value', ''))]",
+          "userAssignedIdentityClientId": "[if(parameters('enableBotService'), createObject('value', reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('botIdentityName')), '2023-01-31').clientId), createObject('value', ''))]"
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.34.44.8038",
+              "templateHash": "2689503070066148057"
+            }
+          },
+          "parameters": {
+            "environmentName": {
+              "type": "string"
+            },
+            "projectName": {
+              "type": "string"
+            },
+            "vnetName": {
+              "type": "string"
+            },
+            "webSubnetName": {
+              "type": "string"
+            },
+            "appName": {
+              "type": "string"
+            },
+            "keyVaultName": {
+              "type": "string"
+            },
+            "logWorkspaceName": {
+              "type": "string"
+            },
+            "authClientId": {
+              "type": "string",
+              "metadata": {
+                "description": "Entra ID app registration client ID for platform auth."
+              }
+            },
+            "authCredentialAppSettingName": {
+              "type": "string",
+              "defaultValue": "ENTRAID_AUTH_AAD_SECRET",
+              "metadata": {
+                "description": "App setting name that holds the Entra ID client credential."
+              }
+            },
+            "authClientSecret": {
+              "type": "securestring",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Entra ID app registration client secret for platform auth."
+              }
+            },
+            "aspSkuName": {
+              "type": "string",
+              "defaultValue": "S1",
+              "metadata": {
+                "description": "App Service Plan SKU name. Default S1."
+              }
+            },
+            "aspSkuTier": {
+              "type": "string",
+              "defaultValue": "Standard",
+              "metadata": {
+                "description": "App Service Plan SKU tier. Default Standard."
+              }
+            },
+            "dotnetVersion": {
+              "type": "string",
+              "defaultValue": "v10.0",
+              "metadata": {
+                "description": ".NET runtime version for the bot host."
+              }
+            },
+            "llmApiEndpoint": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Custom LLM API endpoint URL injected as app setting."
+              }
+            },
+            "llmApiKeySecretName": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Key Vault secret name containing the custom LLM API key."
+              }
+            },
+            "userAssignedIdentityId": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource ID of the shared user-assigned managed identity."
+              }
+            },
+            "userAssignedIdentityPrincipalId": {
+              "type": "string",
+              "metadata": {
+                "description": "Principal ID of the shared user-assigned managed identity."
+              }
+            },
+            "userAssignedIdentityClientId": {
+              "type": "string",
+              "metadata": {
+                "description": "Client ID of the shared user-assigned managed identity."
+              }
+            }
+          },
+          "variables": {
+            "botAppServiceName": "[format('app-{0}-bot', parameters('appName'))]",
+            "appinsightsName": "[format('appi-{0}-bot', parameters('appName'))]",
+            "keyVaultReaderRoleId": "21090545-7ca7-4776-b22c-e363652d74d2",
+            "keyVaultSecretsUserRoleId": "4633458b-17de-408a-b874-0445c86b69e6",
+            "monitoringMetricsPublisherId": "3913510d-42f4-4e42-8a64-420c390055eb",
+            "authSecretSetting": "[if(not(empty(parameters('authClientSecret'))), createObject(format('{0}', parameters('authCredentialAppSettingName')), parameters('authClientSecret')), createObject())]",
+            "ipSecurityRestrictions": [
+              {
+                "priority": 100,
+                "name": "AzureBotService",
+                "tag": "ServiceTag",
+                "ipAddress": "AzureBotService",
+                "action": "Allow",
+                "description": "Azure Bot Service messaging ingress"
+              },
+              {
+                "priority": 200,
+                "name": "AzureHealthChecks",
+                "tag": "ServiceTag",
+                "ipAddress": "AzureCloud",
+                "action": "Allow",
+                "description": "Azure health check probes"
+              },
+              {
+                "ipAddress": "Any",
+                "action": "Deny",
+                "priority": 2147483647,
+                "name": "Deny all",
+                "description": "Deny all other access"
+              }
+            ]
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Web/sites/config",
+              "apiVersion": "2024-04-01",
+              "name": "[format('{0}/{1}', variables('botAppServiceName'), 'appsettings')]",
+              "properties": "[union(createObject('APPINSIGHTS_INSTRUMENTATIONKEY', reference(resourceId('Microsoft.Insights/components', variables('appinsightsName')), '2020-02-02').InstrumentationKey, 'APPLICATIONINSIGHTS_AUTHENTICATION_STRING', format('Authorization=AAD;ClientId={0}', parameters('userAssignedIdentityClientId')), 'APPLICATIONINSIGHTS_CONNECTION_STRING', reference(resourceId('Microsoft.Insights/components', variables('appinsightsName')), '2020-02-02').ConnectionString, 'ApplicationInsightsAgent_EXTENSION_VERSION', '~2', 'InstrumentationEngine_EXTENSION_VERSION', 'disabled', 'XDT_MicrosoftApplicationInsights_BaseExtension', 'disabled', 'XDT_MicrosoftApplicationInsights_Mode', 'recommended', 'WEBSITE_RUN_FROM_PACKAGE', '1', 'MicrosoftAppType', 'UserAssignedMSI', 'MicrosoftAppId', parameters('authClientId'), 'MicrosoftAppTenantId', tenant().tenantId, 'MicrosoftAppPassword', '', 'WEBSITE_AUTH_AAD_ALLOWED_TENANTS', tenant().tenantId), variables('authSecretSetting'), if(not(empty(parameters('llmApiEndpoint'))), createObject('LlmApi:Endpoint', parameters('llmApiEndpoint'), 'LlmApi:KeySecretName', parameters('llmApiKeySecretName'), 'LlmApi:KeyVaultUri', reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2024-12-01-preview').vaultUri), createObject()))]",
+              "dependsOn": [
+                "[resourceId('Microsoft.Insights/components', variables('appinsightsName'))]",
+                "[resourceId('Microsoft.Web/sites', variables('botAppServiceName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Insights/components",
+              "apiVersion": "2020-02-02",
+              "name": "[variables('appinsightsName')]",
+              "location": "[resourceGroup().location]",
+              "kind": "web",
+              "properties": {
+                "Application_Type": "web",
+                "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logWorkspaceName'))]",
+                "DisableLocalAuth": true
+              },
+              "tags": {
+                "Project": "[parameters('projectName')]",
+                "Environment": "[parameters('environmentName')]"
+              }
+            },
+            {
+              "type": "Microsoft.Web/serverfarms",
+              "apiVersion": "2024-04-01",
+              "name": "[format('asp-{0}-bot', parameters('appName'))]",
+              "location": "[resourceGroup().location]",
+              "sku": {
+                "tier": "[parameters('aspSkuTier')]",
+                "name": "[parameters('aspSkuName')]"
+              },
+              "tags": {
+                "Project": "[parameters('projectName')]",
+                "Environment": "[parameters('environmentName')]"
+              }
+            },
+            {
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2024-04-01",
+              "name": "[variables('botAppServiceName')]",
+              "location": "[resourceGroup().location]",
+              "kind": "app",
+              "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                  "[format('{0}', parameters('userAssignedIdentityId'))]": {}
+                }
+              },
+              "properties": {
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', format('asp-{0}-bot', parameters('appName')))]",
+                "virtualNetworkSubnetId": "[resourceId('Microsoft.Network/VirtualNetworks/subnets', parameters('vnetName'), parameters('webSubnetName'))]",
+                "httpsOnly": true,
+                "siteConfig": {
+                  "metadata": [
+                    {
+                      "name": "CURRENT_STACK",
+                      "value": "dotnet"
+                    }
+                  ],
+                  "minTlsVersion": "1.3",
+                  "netFrameworkVersion": "[parameters('dotnetVersion')]",
+                  "ftpsState": "Disabled",
+                  "http20Enabled": true,
+                  "alwaysOn": true,
+                  "vnetRouteAllEnabled": false,
+                  "use32BitWorkerProcess": false,
+                  "publicNetworkAccess": "Enabled",
+                  "ipSecurityRestrictions": "[variables('ipSecurityRestrictions')]",
+                  "ipSecurityRestrictionsDefaultAction": "Deny",
+                  "scmIpSecurityRestrictions": [
+                    {
+                      "ipAddress": "AzureCloud",
+                      "action": "Allow",
+                      "tag": "ServiceTag",
+                      "priority": 100,
+                      "name": "DevOps"
+                    },
+                    {
+                      "ipAddress": "Any",
+                      "action": "Deny",
+                      "priority": 2147483647,
+                      "name": "Deny all",
+                      "description": "Deny all access"
+                    }
+                  ],
+                  "scmIpSecurityRestrictionsDefaultAction": "Deny",
+                  "scmIpSecurityRestrictionsUseMain": false
+                },
+                "clientCertEnabled": true,
+                "clientCertMode": "Optional"
+              },
+              "tags": {
+                "Project": "[parameters('projectName')]",
+                "Environment": "[parameters('environmentName')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/serverfarms', format('asp-{0}-bot', parameters('appName')))]"
+              ]
+            },
+            {
+              "condition": "[not(empty(parameters('authClientId')))]",
+              "type": "Microsoft.Web/sites/config",
+              "apiVersion": "2024-11-01",
+              "name": "[format('{0}/{1}', variables('botAppServiceName'), 'authsettingsV2')]",
+              "properties": {
+                "globalValidation": {
+                  "requireAuthentication": true,
+                  "unauthenticatedClientAction": "Return401",
+                  "excludedPaths": [
+                    "/api/messages",
+                    "/healthz",
+                    "/.well-known/health"
+                  ]
+                },
+                "platform": {
+                  "enabled": true,
+                  "runtimeVersion": "2"
+                },
+                "httpSettings": {
+                  "requireHttps": true
+                },
+                "identityProviders": {
+                  "azureActiveDirectory": {
+                    "enabled": true,
+                    "registration": {
+                      "clientId": "[parameters('authClientId')]",
+                      "clientSecretSettingName": "[parameters('authCredentialAppSettingName')]",
+                      "openIdIssuer": "[format('https://sts.windows.net/{0}/v2.0', tenant().tenantId)]"
+                    },
+                    "validation": {
+                      "allowedAudiences": [
+                        "[format('api://{0}', parameters('authClientId'))]"
+                      ]
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', variables('botAppServiceName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[format('Microsoft.KeyVault/vaults/{0}', parameters('keyVaultName'))]",
+              "name": "[guid(subscription().id, resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), resourceId('Microsoft.Web/sites', variables('botAppServiceName')), 'Key Vault Secrets User')]",
+              "properties": {
+                "principalId": "[parameters('userAssignedIdentityPrincipalId')]",
+                "principalType": "ServicePrincipal",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('keyVaultSecretsUserRoleId'))]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', variables('botAppServiceName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[format('Microsoft.KeyVault/vaults/{0}', parameters('keyVaultName'))]",
+              "name": "[guid(subscription().id, resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), resourceId('Microsoft.Web/sites', variables('botAppServiceName')), 'Key Vault Reader')]",
+              "properties": {
+                "principalId": "[parameters('userAssignedIdentityPrincipalId')]",
+                "principalType": "ServicePrincipal",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('keyVaultReaderRoleId'))]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', variables('botAppServiceName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[format('Microsoft.Insights/components/{0}', variables('appinsightsName'))]",
+              "name": "[guid(subscription().id, resourceId('Microsoft.Insights/components', variables('appinsightsName')), resourceId('Microsoft.Web/sites', variables('botAppServiceName')), 'Monitoring Metrics Publisher')]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('monitoringMetricsPublisherId'))]",
+                "principalId": "[parameters('userAssignedIdentityPrincipalId')]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Insights/components', variables('appinsightsName'))]",
+                "[resourceId('Microsoft.Web/sites', variables('botAppServiceName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Insights/diagnosticSettings",
+              "apiVersion": "2021-05-01-preview",
+              "scope": "[format('Microsoft.Web/sites/{0}', variables('botAppServiceName'))]",
+              "name": "[variables('botAppServiceName')]",
+              "properties": {
+                "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logWorkspaceName'))]",
+                "logs": [
+                  {
+                    "categoryGroup": "allLogs",
+                    "enabled": true
+                  }
+                ],
+                "metrics": [
+                  {
+                    "category": "AllMetrics",
+                    "enabled": true
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', variables('botAppServiceName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "botAppServiceName": {
+              "type": "string",
+              "value": "[variables('botAppServiceName')]"
+            },
+            "botAppServiceHostName": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Web/sites', variables('botAppServiceName')), '2024-04-01').defaultHostName]"
+            },
+            "appinsightsName": {
+              "type": "string",
+              "value": "[variables('appinsightsName')]"
+            },
+            "appinsightsInstrumentationKey": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Insights/components', variables('appinsightsName')), '2020-02-02').InstrumentationKey]"
+            },
+            "appinsightsAppId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Insights/components', variables('appinsightsName')), '2020-02-02').AppId]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('botIdentityName'))]",
+        "[resourceId('Microsoft.Resources/deployments', 'log')]",
+        "[resourceId('Microsoft.Resources/deployments', 'network')]",
+        "[resourceId('Microsoft.Resources/deployments', 'vault')]"
+      ]
+    },
+    {
+      "condition": "[parameters('enableBotService')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "botService",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "botServiceName": {
+            "value": "[variables('botServiceName')]"
+          },
+          "botDisplayName": {
+            "value": "[parameters('botDisplayName')]"
+          },
+          "botEndpointHostName": "[if(parameters('enableBotService'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'botAppService'), '2022-09-01').outputs.botAppServiceHostName.value), createObject('value', ''))]",
+          "environmentName": {
+            "value": "[parameters('environmentName')]"
+          },
+          "projectName": {
+            "value": "[parameters('projectName')]"
+          },
+          "logWorkspaceName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log'), '2022-09-01').outputs.logWorkspaceName.value]"
+          },
+          "userAssignedIdentityId": "[if(parameters('enableBotService'), createObject('value', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('botIdentityName'))), createObject('value', ''))]",
+          "msaAppId": {
+            "value": "[parameters('botMsaAppId')]"
+          },
+          "skuName": {
+            "value": "[parameters('botSkuName')]"
+          },
+          "enableTeamsChannel": {
+            "value": "[parameters('enableTeamsChannel')]"
+          },
+          "enableSsoConnection": {
+            "value": "[parameters('enableBotSsoConnection')]"
+          },
+          "ssoClientId": {
+            "value": "[parameters('botSsoClientId')]"
+          },
+          "ssoClientSecret": {
+            "value": "[parameters('botSsoClientSecret')]"
+          },
+          "ssoScopes": {
+            "value": "[parameters('botSsoScopes')]"
+          },
+          "appInsightsKey": "[if(parameters('enableBotService'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'botAppService'), '2022-09-01').outputs.appinsightsInstrumentationKey.value), createObject('value', ''))]",
+          "appInsightsAppId": "[if(parameters('enableBotService'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'botAppService'), '2022-09-01').outputs.appinsightsAppId.value), createObject('value', ''))]"
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.34.44.8038",
+              "templateHash": "15927041427591130138"
+            }
+          },
+          "parameters": {
+            "environmentName": {
+              "type": "string"
+            },
+            "projectName": {
+              "type": "string"
+            },
+            "botServiceName": {
+              "type": "string"
+            },
+            "botDisplayName": {
+              "type": "string"
+            },
+            "botEndpointHostName": {
+              "type": "string",
+              "metadata": {
+                "description": "Hostname of the dedicated bot host App Service (e.g. app-mybot.azurewebsites.net)."
+              }
+            },
+            "logWorkspaceName": {
+              "type": "string"
+            },
+            "userAssignedIdentityId": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource ID of the shared user-assigned managed identity."
+              }
+            },
+            "msaAppId": {
+              "type": "string",
+              "metadata": {
+                "description": "Client ID of the Entra ID app registration used as msaAppId."
+              }
+            },
+            "skuName": {
+              "type": "string",
+              "defaultValue": "S1",
+              "allowedValues": [
+                "F0",
+                "S1"
+              ],
+              "metadata": {
+                "description": "Bot Service SKU. F0 for free, S1 for standard."
+              }
+            },
+            "enableTeamsChannel": {
+              "type": "bool",
+              "defaultValue": true,
+              "metadata": {
+                "description": "Enable the Microsoft Teams channel."
+              }
+            },
+            "enableSsoConnection": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Enable an OAuth SSO connection for Entra ID / Microsoft Graph."
+              }
+            },
+            "ssoConnectionName": {
+              "type": "string",
+              "defaultValue": "EntraIdConnection",
+              "metadata": {
+                "description": "Display name for the SSO connection."
+              }
+            },
+            "ssoClientId": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Entra ID app registration client ID for the SSO connection."
+              }
+            },
+            "ssoClientSecret": {
+              "type": "securestring",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Entra ID app registration client secret for the SSO connection."
+              }
+            },
+            "ssoScopes": {
+              "type": "string",
+              "defaultValue": "openid profile User.Read",
+              "metadata": {
+                "description": "OAuth scopes for the SSO connection (space-separated)."
+              }
+            },
+            "appInsightsKey": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Application Insights instrumentation key for bot telemetry."
+              }
+            },
+            "appInsightsAppId": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Application Insights app ID for bot telemetry."
+              }
+            }
+          },
+          "variables": {
+            "entraIdServiceProviderId": "30dd229c-58e3-4a48-bdfd-91ec48eb906c"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.BotService/botServices",
+              "apiVersion": "2023-09-15-preview",
+              "name": "[parameters('botServiceName')]",
+              "location": "global",
+              "kind": "azurebot",
+              "sku": {
+                "name": "[parameters('skuName')]"
+              },
+              "properties": {
+                "displayName": "[parameters('botDisplayName')]",
+                "endpoint": "[format('https://{0}/api/messages', parameters('botEndpointHostName'))]",
+                "msaAppId": "[parameters('msaAppId')]",
+                "msaAppType": "UserAssignedMSI",
+                "msaAppMSIResourceId": "[parameters('userAssignedIdentityId')]",
+                "msaAppTenantId": "[tenant().tenantId]",
+                "disableLocalAuth": true,
+                "isStreamingSupported": true,
+                "developerAppInsightKey": "[if(not(empty(parameters('appInsightsKey'))), parameters('appInsightsKey'), '')]",
+                "developerAppInsightsApplicationId": "[if(not(empty(parameters('appInsightsAppId'))), parameters('appInsightsAppId'), '')]",
+                "publicNetworkAccess": "Enabled",
+                "schemaTransformationVersion": "1.3"
+              },
+              "tags": {
+                "Project": "[parameters('projectName')]",
+                "Environment": "[parameters('environmentName')]"
+              }
+            },
+            {
+              "condition": "[parameters('enableTeamsChannel')]",
+              "type": "Microsoft.BotService/botServices/channels",
+              "apiVersion": "2023-09-15-preview",
+              "name": "[format('{0}/{1}', parameters('botServiceName'), 'MsTeamsChannel')]",
+              "location": "global",
+              "properties": {
+                "channelName": "MsTeamsChannel",
+                "properties": {
+                  "isEnabled": true,
+                  "acceptedTerms": true,
+                  "enableCalling": false
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.BotService/botServices', parameters('botServiceName'))]"
+              ]
+            },
+            {
+              "condition": "[and(parameters('enableSsoConnection'), not(empty(parameters('ssoClientId'))))]",
+              "type": "Microsoft.BotService/botServices/connections",
+              "apiVersion": "2023-09-15-preview",
+              "name": "[format('{0}/{1}', parameters('botServiceName'), parameters('ssoConnectionName'))]",
+              "location": "global",
+              "properties": {
+                "clientId": "[parameters('ssoClientId')]",
+                "clientSecret": "[parameters('ssoClientSecret')]",
+                "scopes": "[parameters('ssoScopes')]",
+                "serviceProviderId": "[variables('entraIdServiceProviderId')]",
+                "serviceProviderDisplayName": "Azure Active Directory v2",
+                "parameters": [
+                  {
+                    "key": "tenantID",
+                    "value": "[tenant().tenantId]"
+                  },
+                  {
+                    "key": "tokenExchangeUrl",
+                    "value": "[format('api://{0}', parameters('msaAppId'))]"
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.BotService/botServices', parameters('botServiceName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Insights/diagnosticSettings",
+              "apiVersion": "2021-05-01-preview",
+              "scope": "[format('Microsoft.BotService/botServices/{0}', parameters('botServiceName'))]",
+              "name": "[parameters('botServiceName')]",
+              "properties": {
+                "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logWorkspaceName'))]",
+                "logs": [
+                  {
+                    "categoryGroup": "allLogs",
+                    "enabled": true
+                  }
+                ],
+                "metrics": [
+                  {
+                    "category": "AllMetrics",
+                    "enabled": true
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.BotService/botServices', parameters('botServiceName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "botServiceId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.BotService/botServices', parameters('botServiceName'))]"
+            },
+            "botServiceName": {
+              "type": "string",
+              "value": "[parameters('botServiceName')]"
+            },
+            "botMessagingEndpoint": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.BotService/botServices', parameters('botServiceName')), '2023-09-15-preview').endpoint]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'botAppService')]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('botIdentityName'))]",
+        "[resourceId('Microsoft.Resources/deployments', 'log')]"
+      ]
+    },
+    {
       "condition": "[parameters('enableFrontDoor')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
@@ -3170,6 +3994,132 @@
       },
       "dependsOn": [
         "[resourceId('Microsoft.Resources/deployments', 'netapp')]"
+      ]
+    },
+    {
+      "condition": "[and(parameters('enableAlerts'), parameters('enableBotService'))]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "logalertBot",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "actionGroupName": {
+            "value": "[variables('actionGroupName')]"
+          },
+          "alertRuleName": {
+            "value": "[format('ar-{0}-failures', reference(resourceId('Microsoft.Resources/deployments', 'botAppService'), '2022-09-01').outputs.botAppServiceName.value)]"
+          },
+          "alertRuleQuery": {
+            "value": "(traces | where severityLevel == 3 or severityLevel == 4 | project timestamp, message, operation_Id) | union (exceptions | project timestamp, outerMessage, operation_Id)"
+          },
+          "alertRuleSeverity": {
+            "value": 1
+          },
+          "alertRuleTitle": {
+            "value": "[format('Error occured in {0}', reference(resourceId('Microsoft.Resources/deployments', 'botAppService'), '2022-09-01').outputs.botAppServiceName.value)]"
+          },
+          "appinsightsName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'botAppService'), '2022-09-01').outputs.appinsightsName.value]"
+          },
+          "environmentName": {
+            "value": "[parameters('environmentName')]"
+          },
+          "projectName": {
+            "value": "[parameters('projectName')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.34.44.8038",
+              "templateHash": "12873780186745045209"
+            }
+          },
+          "parameters": {
+            "alertRuleName": {
+              "type": "string"
+            },
+            "alertRuleTitle": {
+              "type": "string"
+            },
+            "alertRuleSeverity": {
+              "type": "int"
+            },
+            "alertRuleQuery": {
+              "type": "string"
+            },
+            "appinsightsName": {
+              "type": "string"
+            },
+            "actionGroupName": {
+              "type": "string"
+            },
+            "environmentName": {
+              "type": "string"
+            },
+            "projectName": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Insights/scheduledQueryRules",
+              "apiVersion": "2025-01-01-preview",
+              "name": "[parameters('alertRuleName')]",
+              "location": "[resourceGroup().location]",
+              "kind": "LogAlert",
+              "properties": {
+                "displayName": "[parameters('alertRuleName')]",
+                "description": "[parameters('alertRuleTitle')]",
+                "severity": "[parameters('alertRuleSeverity')]",
+                "enabled": true,
+                "evaluationFrequency": "PT1H",
+                "scopes": [
+                  "[resourceId('Microsoft.Insights/components', parameters('appinsightsName'))]"
+                ],
+                "targetResourceTypes": [
+                  "Microsoft.Insights/components"
+                ],
+                "windowSize": "PT1H",
+                "criteria": {
+                  "allOf": [
+                    {
+                      "query": "[parameters('alertRuleQuery')]",
+                      "timeAggregation": "Count",
+                      "dimensions": [],
+                      "operator": "GreaterThan",
+                      "threshold": 0,
+                      "failingPeriods": {
+                        "numberOfEvaluationPeriods": 1,
+                        "minFailingPeriodsToAlert": 1
+                      }
+                    }
+                  ]
+                },
+                "autoMitigate": false,
+                "actions": {
+                  "actionGroups": [
+                    "[resourceId('Microsoft.Insights/actionGroups', parameters('actionGroupName'))]"
+                  ]
+                }
+              },
+              "tags": {
+                "Project": "[parameters('projectName')]",
+                "Environment": "[parameters('environmentName')]"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'botAppService')]"
       ]
     },
     {

@@ -26,6 +26,9 @@ param enableAlerts bool = true
 @description('Deploy Azure Service Bus namespace.')
 param enableServiceBus bool = false
 
+@description('Deploy Azure Bot Service with a dedicated bot host App Service.')
+param enableBotService bool = false
+
 // ── Cosmos parameters ──
 param cosmosContainerName string = ''
 param cosmosThroughputLimit int = 1000
@@ -55,6 +58,43 @@ param serviceBusSku string = 'Premium'
 @description('Optional list of Service Bus queue names to create.')
 param serviceBusQueues array = []
 
+// ── Bot Service settings ──
+@description('Display name shown in Teams and the Azure portal.')
+param botDisplayName string = 'Bot ${projectName}'
+
+@allowed(['F0', 'S1'])
+@description('Bot Service SKU. F0 for free tier, S1 for standard.')
+param botSkuName string = 'S1'
+
+@description('Entra ID app registration client ID used as the bot identity (msaAppId).')
+param botMsaAppId string = ''
+
+@secure()
+@description('Entra ID app registration client secret for the bot host platform auth.')
+param botAuthClientSecret string = ''
+
+@description('Enable Microsoft Teams channel on the bot.')
+param enableTeamsChannel bool = true
+
+@description('Enable an OAuth SSO connection (Entra ID / Microsoft Graph) on the bot.')
+param enableBotSsoConnection bool = false
+
+@description('Entra ID app registration client ID for the bot SSO connection (can differ from botMsaAppId).')
+param botSsoClientId string = ''
+
+@secure()
+@description('Entra ID app registration client secret for the bot SSO connection.')
+param botSsoClientSecret string = ''
+
+@description('OAuth scopes for the bot SSO connection.')
+param botSsoScopes string = 'openid profile User.Read'
+
+@description('Custom LLM API endpoint URL for the bot Agent SDK.')
+param botLlmApiEndpoint string = ''
+
+@description('Key Vault secret name containing the custom LLM API key.')
+param botLlmApiKeySecretName string = ''
+
 // ── Function App settings ──
 @description('Identity type for the function app. SystemAssigned or UserAssigned.')
 @allowed(['SystemAssigned', 'UserAssigned'])
@@ -80,6 +120,8 @@ var webSubnetName = 'snet-web'
 var amplsSubnetName = 'snet-ampls'
 var cosmosName = 'cosmos-${projectName}'
 var serviceBusName = 'sb-${projectName}'
+var botServiceName = 'bot-${projectName}'
+var botIdentityName = 'uai-bot-${projectName}'
 
 // Sample application environment settings (used when enableFunctionApp == true)
 var functionAppSettings = enableFunctionApp ? {
@@ -221,6 +263,67 @@ module netfaModule 'Modules/functionapp.bicep' = if (enableFunctionApp) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// Bot — Shared User-Assigned Managed Identity (optional)
+// ═══════════════════════════════════════════════════════════════════════════
+resource botIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = if (enableBotService) {
+  name: botIdentityName
+  location: resourceGroup().location
+  tags: {
+    Project: projectName
+    Environment: environmentName
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Bot — Dedicated Bot Host App Service (optional)
+// ═══════════════════════════════════════════════════════════════════════════
+module botAppServiceModule 'Modules/botappservice.bicep' = if (enableBotService) {
+  name: 'botAppService'
+  params: {
+    environmentName: environmentName
+    projectName: projectName
+    vnetName: networkModule.outputs.vnetName
+    webSubnetName: webSubnetName
+    appName: projectName
+    keyVaultName: vaultModule.outputs.keyVaultName
+    logWorkspaceName: logModule.outputs.logWorkspaceName
+    authClientId: botMsaAppId
+    authClientSecret: botAuthClientSecret
+    dotnetVersion: 'v10.0'
+    llmApiEndpoint: botLlmApiEndpoint
+    llmApiKeySecretName: botLlmApiKeySecretName
+    userAssignedIdentityId: enableBotService ? botIdentity.id : ''
+    userAssignedIdentityPrincipalId: enableBotService ? botIdentity.properties.principalId : ''
+    userAssignedIdentityClientId: enableBotService ? botIdentity.properties.clientId : ''
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Bot — Bot Service (optional)
+// ═══════════════════════════════════════════════════════════════════════════
+module botServiceModule 'Modules/botservice.bicep' = if (enableBotService) {
+  name: 'botService'
+  params: {
+    botServiceName: botServiceName
+    botDisplayName: botDisplayName
+    botEndpointHostName: enableBotService ? botAppServiceModule.outputs.botAppServiceHostName : ''
+    environmentName: environmentName
+    projectName: projectName
+    logWorkspaceName: logModule.outputs.logWorkspaceName
+    userAssignedIdentityId: enableBotService ? botIdentity.id : ''
+    msaAppId: botMsaAppId
+    skuName: botSkuName
+    enableTeamsChannel: enableTeamsChannel
+    enableSsoConnection: enableBotSsoConnection
+    ssoClientId: botSsoClientId
+    ssoClientSecret: botSsoClientSecret
+    ssoScopes: botSsoScopes
+    appInsightsKey: enableBotService ? botAppServiceModule.outputs.appinsightsInstrumentationKey : ''
+    appInsightsAppId: enableBotService ? botAppServiceModule.outputs.appinsightsAppId : ''
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Security — Front Door (optional)
 // ═══════════════════════════════════════════════════════════════════════════
 module frontdoorModule './Security/frontdoor.bicep' = if (enableFrontDoor) {
@@ -303,6 +406,20 @@ module logalertAppFaModule 'Alerts/logalert-appinsights.bicep' = if (enableAlert
     alertRuleSeverity: 1
     alertRuleTitle: 'Error occured in ${netappModule.outputs.appServiceName}'
     appinsightsName: netappModule.outputs.appinsightsName
+    environmentName: environmentName
+    projectName: projectName
+  }
+}
+
+module logalertBotModule 'Alerts/logalert-appinsights.bicep' = if (enableAlerts && enableBotService) {
+  name: 'logalertBot'
+  params: {
+    actionGroupName: actionGroupName
+    alertRuleName: 'ar-${botAppServiceModule.outputs.botAppServiceName}-failures'
+    alertRuleQuery: '(traces | where severityLevel == 3 or severityLevel == 4 | project timestamp, message, operation_Id) | union (exceptions | project timestamp, outerMessage, operation_Id)'
+    alertRuleSeverity: 1
+    alertRuleTitle: 'Error occured in ${botAppServiceModule.outputs.botAppServiceName}'
+    appinsightsName: botAppServiceModule.outputs.appinsightsName
     environmentName: environmentName
     projectName: projectName
   }
