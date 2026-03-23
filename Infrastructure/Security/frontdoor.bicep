@@ -97,7 +97,7 @@ resource securityPolicy 'Microsoft.Cdn/profiles/securityPolicies@2025-06-01' = {
   }
 }
 
-output frontDoorName string = frontDoorName
+output frontDoorName string = frontDoorProfile.name
 output frontDoorEndpointName string = frontDoorEndpoint.name
 output frontDoorId string = frontDoorProfile.properties.frontDoorId
-output frontDoorUrl string = frontDoorEndpoint.properties.hostName
+output frontDoorUrl string = 'https://${frontDoorEndpoint.properties.hostName}'

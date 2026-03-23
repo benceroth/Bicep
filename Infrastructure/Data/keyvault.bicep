@@ -127,3 +127,7 @@ resource diagnosticsettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-pr
     ]
   }
 }
+
+output keyVaultId string = vault.id
+output keyVaultName string = vault.name
+output keyVaultUri string = vault.properties.vaultUri

@@ -143,3 +143,10 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
     Environment: environmentName
   }
 }
+
+output vnetId string = virtualNetwork.id
+output vnetName string = virtualNetwork.name
+output peSubnetId string = virtualNetwork.properties.subnets[0].id
+output faSubnetId string = virtualNetwork.properties.subnets[1].id
+output webSubnetId string = virtualNetwork.properties.subnets[2].id
+output amplsSubnetId string = virtualNetwork.properties.subnets[3].id

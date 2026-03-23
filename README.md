@@ -3,70 +3,192 @@
 ## Overview
 This repository provides an **enterprise-grade Infrastructure as Code (IaC) reference implementation using Bicep** for deploying secure, scalable, and production-ready Azure resources. It follows modular design principles, secure-by-default configurations, and least privilege access controls.
 
-## Key Features
-✅ Modular Bicep architecture for scalability and reuse  
-✅ Secure-by-default configurations  
-✅ Least privilege access principles for identities and networking  
-✅ Private Endpoints and Private DNS Zones  
-✅ Managed and User Assigned Identities  
-✅ Network Security Groups (NSGs) with granular rules  
-✅ Production-ready Function App and App Service deployments  
-✅ Supports enterprise security, governance, and compliance requirements  
+Clone the entire repo for each use-case, customise the parameter files for your environment, toggle feature flags to include only the components you need, and deploy.
 
-## Deployment Prerequisites
-- Azure CLI or PowerShell Az Module
-- Bicep CLI (installed automatically with Azure CLI)
-- Azure Subscription with Contributor and RBAC Administrator or higher permissions on a Resource Group
+## Key Features
+- Modular Bicep architecture for scalability and reuse
+- **Feature flags** — enable/disable components (Cosmos, Function App, App Service, Front Door, Alerts)
+- **Consolidated modules** — single `functionapp.bicep` and `appservice.bicep` replace multiple variants
+- **Environment overlays** — parameter files per environment (`dev`, `staging`, `prod`)
+- Secure-by-default configurations & least privilege RBAC
+- Private Endpoints and Private DNS Zones
+- Managed and User Assigned Identity support (configurable per deployment)
+- CI/CD pipeline (GitHub Actions) and deployment script (PowerShell)
+
+---
+
+## Repository Structure
+
+```
+Infrastructure/
+├── main.bicep                  # Orchestrator with feature flags
+├── main.bicepparam             # Legacy param file (backward compat)
+├── network.bicep               # VNet + NSG + subnets
+├── parameters/
+│   ├── dev.bicepparam          # Development environment
+│   ├── staging.bicepparam      # Staging environment
+│   └── prod.bicepparam         # Production environment
+├── Modules/
+│   ├── functionapp.bicep       # Unified Function App (MI/UAI, dotnet/powershell)
+│   └── appservice.bicep        # Unified App Service (±Front Door, ±auth)
+├── Data/
+│   ├── log.bicep               # Log Analytics workspace
+│   ├── storage.bicep           # Storage Account + private endpoints
+│   ├── keyvault.bicep          # Key Vault + private endpoint
+│   ├── keyvault-secret.bicep   # Key Vault secrets helper
+│   └── cosmosdb.bicep          # Cosmos DB + private endpoint
+├── Security/
+│   ├── frontdoor.bicep         # Front Door profile + WAF
+│   └── frontdoor-origin.bicep  # Front Door origin/route/custom domain
+├── Alerts/
+│   ├── actiongroup.bicep       # Action Group
+│   ├── logalert-appinsights.bicep     # Log alert rule
+│   └── activityalert-servicehealth.bicep  # Service Health alert
+scripts/
+└── deploy.ps1                  # Manual deployment script
+.github/workflows/
+└── deploy.yml                  # GitHub Actions CI/CD pipeline
+```
+
+---
+
+## Feature Flags
+
+Toggle components in your parameter file or via CLI overrides:
+
+| Parameter           | Default | Description                              |
+|---------------------|---------|------------------------------------------|
+| `enableCosmos`      | `true`  | Deploy Cosmos DB resources               |
+| `enableFunctionApp` | `true`  | Deploy a Function App                    |
+| `enableAppService`  | `true`  | Deploy an App Service                    |
+| `enableFrontDoor`   | `true`  | Deploy Azure Front Door and WAF          |
+| `enableAlerts`      | `true`  | Deploy alert rules and action groups     |
+| `enableServiceBus`  | `false` | Deploy Azure Service Bus namespace       |
+
+Example — deploy without Cosmos or Front Door:
+
+```bash
+az deployment group create \
+  --resource-group rg-myproject-dev \
+  --template-file Infrastructure/main.bicep \
+  --parameters @Infrastructure/parameters/dev.bicepparam \
+  --parameters enableCosmos=false enableFrontDoor=false
+```
 
 ---
 
 ## How to Deploy
+
+### Prerequisites
+- Azure CLI (Bicep CLI installed automatically)
+- Azure Subscription with **Contributor** + **RBAC Administrator** on a Resource Group
+
 ### 1. Login to Azure
 ```bash
 az login
 az account set --subscription <your-subscription-id>
 ```
 
-### 2. Deploy Resources
-Example for a Dev environment:
+### 2. Choose an environment and deploy
+
+**Using the parameter files (recommended):**
+
 ```bash
-az deployment sub create \
-  --location <location> \
+# Dev
+az deployment group create \
+  --resource-group rg-myproject-dev \
   --template-file Infrastructure/main.bicep \
-  --parameters @Infrastructure/main.bicepparam
+  --parameters @Infrastructure/parameters/dev.bicepparam
+
+# Staging
+az deployment group create \
+  --resource-group rg-myproject-stg \
+  --template-file Infrastructure/main.bicep \
+  --parameters @Infrastructure/parameters/staging.bicepparam
+
+# Production
+az deployment group create \
+  --resource-group rg-myproject-prod \
+  --template-file Infrastructure/main.bicep \
+  --parameters @Infrastructure/parameters/prod.bicepparam
 ```
+
+**Override secrets at deploy time:**
+
+```bash
+az deployment group create \
+  --resource-group rg-myproject-dev \
+  --template-file Infrastructure/main.bicep \
+  --parameters @Infrastructure/parameters/dev.bicepparam \
+  --parameters authClientId=<client-id> authClientSecret=<client-secret>
+```
+
+**Using the PowerShell script:**
+
+```powershell
+.\scripts\deploy.ps1 -Environment dev -ResourceGroup rg-myproject-dev -Location westeurope
+```
+
+### 3. CI/CD (GitHub Actions)
+
+The workflow at `.github/workflows/deploy.yml` supports manual dispatch with environment selection. Configure these GitHub secrets and variables:
+
+| Secret / Variable          | Scope       | Description                        |
+|----------------------------|-------------|------------------------------------|
+| `AZURE_CLIENT_ID`         | secret      | Service principal / federated app  |
+| `AZURE_TENANT_ID`         | secret      | Entra ID tenant                    |
+| `AZURE_SUBSCRIPTION_ID`   | secret      | Target subscription                |
+| `AUTH_CLIENT_ID`           | secret      | App registration for Easy Auth     |
+| `AUTH_CLIENT_SECRET`       | secret      | App registration secret            |
+| `AZURE_RESOURCE_GROUP`    | variable    | Target resource group name         |
+
+---
+
+## Customising for a New Use-Case
+
+1. **Clone** this repo into your project.
+2. **Copy** `Infrastructure/parameters/dev.bicepparam` and rename for your environment.
+3. **Edit** the parameter file — set `projectName`, toggle feature flags, adjust SKUs and thresholds.
+4. **Add new modules** under `Infrastructure/Modules/`, `Data/`, `Security/`, or `Alerts/`, then wire them up in `main.bicep` behind a new feature flag.
+5. **Deploy** using the CLI commands or CI/CD pipeline above.
+
+---
+
+## Module Outputs
+
+Core modules now expose outputs for downstream consumption:
+
+| Module              | Outputs                                                    |
+|---------------------|------------------------------------------------------------|
+| `network.bicep`     | `vnetId`, `vnetName`, `peSubnetId`, `faSubnetId`, `webSubnetId`, `amplsSubnetId` |
+| `Data/log.bicep`    | `logWorkspaceId`, `logWorkspaceName`                       |
+| `Data/storage.bicep`| `storageAccountId`, `storageAccountName`                   |
+| `Data/keyvault.bicep`| `keyVaultId`, `keyVaultName`, `keyVaultUri`               |
+| `Data/cosmosdb.bicep`| `cosmosAccountId`, `cosmosAccountName`                    |
+| `Data/servicebus.bicep`| `serviceBusNamespaceId`, `serviceBusNamespaceName`      |
+| `Security/frontdoor.bicep`| `frontDoorName`, `frontDoorEndpointName`, `frontDoorId`, `frontDoorUrl` |
+| `Modules/functionapp.bicep`| `appinsightsName`, `functionAppName`, `functionAppPrincipalId` |
+| `Modules/appservice.bicep`| `appinsightsName`, `appServiceName`, `appServiceHostName` |
 
 ---
 
 ## Security & Best Practices
-✔ All resources configured with secure defaults  
-✔ NSGs applied to subnets with restrictive rules  
-✔ Private Endpoints enabled for supported services  
-✔ No public IPs exposed unnecessarily  
-✔ Managed Identities used for secure authentication  
-✔ Role-Based Access Control (RBAC) follows least privilege principles  
-✔ Tags and Diagnostic logging applied to resources for governance
+- All resources configured with secure defaults
+- NSGs applied to subnets with restrictive rules
+- Private Endpoints enabled for supported services
+- No public IPs exposed unnecessarily
+- Managed Identities used for secure authentication
+- Role-Based Access Control (RBAC) follows least privilege principles
+- Tags and Diagnostic logging applied to resources for governance
+
 ---
 
-## Supported Modules
-- **Virtual Network (VNet)**
-- **Network Security Groups (NSGs)**
-- **Log analytics workspace**
-- **Storage Account**
-- **Key Vault**
-- **Cosmos DB**
-- **Function App**
-- **App Service**
-- **Front Door**
-- **Application Insights**
-- **Action Group**
-- **Log Alert Rules**
-- **Service Health Rules**
+## Adding New Modules
 
-## Next Steps
-- Introduction of new Azure services
-- Make modules more customizable
-- Provide sample code for the demo main.bicep infrastructure
+1. Create a new `.bicep` file under the appropriate folder (`Modules/`, `Data/`, `Security/`, or `Alerts/`).
+2. Add a feature flag parameter (e.g., `enableMyService`) in `main.bicep`.
+3. Wire the module call with `if (enableMyService)` in `main.bicep`.
+4. Add the flag to your parameter files and set it per environment.
 
 ---
 

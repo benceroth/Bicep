@@ -198,6 +198,9 @@ resource tableService 'Microsoft.Storage/storageAccounts/tableServices@2021-06-0
   properties: {}
 }
 
+output storageAccountId string = storageAccount.id
+output storageAccountName string = storageAccount.name
+
 resource storageAccountTablePrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' = {
   name: 'pe-${storageAccountName}-table'
   location: resourceGroup().location

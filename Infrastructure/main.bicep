@@ -1,37 +1,100 @@
+// ╔══════════════════════════════════════════════════════════════════════════╗
+// ║  main.bicep — Modular orchestrator with feature flags                  ║
+// ║  Enable/disable components per use-case via boolean parameters.        ║
+// ╚══════════════════════════════════════════════════════════════════════════╝
+
+// ── Core parameters ──
 param environmentName string
 param projectName string
 
-param vnetName string
-param nsgName string
-param faSubnetName string
-param peSubnetName string
-param webSubnetName string
-param amplsSubnetName string
+// ── Feature flags — toggle components per use-case ──
+@description('Deploy Cosmos DB resources.')
+param enableCosmos bool = true
 
-param cosmosName string
-param cosmosContainerName string
-param cosmosThroughputLimit int
-param cosmosUseFreeTier bool
+@description('Deploy a .NET Function App (via unified Modules/functionapp.bicep).')
+param enableFunctionApp bool = true
 
-param actionGroupName string
-param actionGroupShortName string
-param actionGroupEmailAddress string
+@description('Deploy a .NET App Service (via unified Modules/appservice.bicep).')
+param enableAppService bool = true
 
-param keyVaultName string
-param logWorkspaceName string
+@description('Deploy Azure Front Door and WAF policy.')
+param enableFrontDoor bool = true
 
-param storageAccountName string
+@description('Deploy alert rules and action groups.')
+param enableAlerts bool = true
 
-param functionAppSettings object
+@description('Deploy Azure Service Bus namespace.')
+param enableServiceBus bool = false
 
-param frontDoorName string
-param wafPolicyName string
-param customDomainHost string
+// ── Cosmos parameters ──
+param cosmosContainerName string = ''
+param cosmosThroughputLimit int = 1000
+param cosmosUseFreeTier bool = true
 
-param authClientId string
+// ── Alert parameters ──
+param actionGroupShortName string = ''
+param actionGroupEmailAddress string = ''
+
+// ── Front Door / custom domain ──
+param customDomainHost string = ''
+
+// ── App Service auth ──
+param authClientId string = ''
 @secure()
-param authClientSecret string
+param authClientSecret string = ''
 
+// ── Log Analytics ──
+@description('Daily ingestion cap in GB for Log Analytics.')
+param logCapacityPerDay int = 1
+
+// ── Service Bus ──
+@allowed(['Basic', 'Standard', 'Premium'])
+@description('Service Bus SKU. Premium required for private endpoints.')
+param serviceBusSku string = 'Premium'
+
+@description('Optional list of Service Bus queue names to create.')
+param serviceBusQueues array = []
+
+// ── Function App settings ──
+@description('Identity type for the function app. SystemAssigned or UserAssigned.')
+@allowed(['SystemAssigned', 'UserAssigned'])
+param functionAppIdentityType string = 'SystemAssigned'
+
+param functionAppRuntime string = 'dotnet-isolated'
+param functionAppRuntimeVersion string = '8.0'
+
+param appServiceRuntimeVersion string = 'v8.0'
+
+// ── Naming conventions ──
+var actionGroupName = 'ag-${projectName}'
+var keyVaultName = 'kv-${projectName}'
+var logWorkspaceName = 'law-${projectName}'
+var storageAccountName = 'st${projectName}'
+var frontDoorName = 'afd-${projectName}'
+var wafPolicyName = 'waf${projectName}'
+var vnetName = 'vnet-${projectName}'
+var nsgName = 'nsg-${projectName}'
+var faSubnetName = 'snet-fas'
+var peSubnetName = 'snet-pes'
+var webSubnetName = 'snet-web'
+var amplsSubnetName = 'snet-ampls'
+var cosmosName = 'cosmos-${projectName}'
+var serviceBusName = 'sb-${projectName}'
+
+// Sample application environment settings (used when enableFunctionApp == true)
+var functionAppSettings = enableFunctionApp ? {
+  'KeyVaultConfig:Name': keyVaultName
+  'AzureWebJobs.FunctionName.Schedule': '0 */5 * * * *'
+  'Config:CosmosContainer': cosmosContainerName
+  'Config:MetricsTimeRangeInMinutes': 5
+  'Config:MetricTypeMaxCount': 5
+  'Config:Subscriptions': null
+  'Config:ResourceGroups': null
+} : {}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Network
+// ═══════════════════════════════════════════════════════════════════════════
 module networkModule 'network.bicep' = {
   name: 'network'
   params: {
@@ -46,52 +109,63 @@ module networkModule 'network.bicep' = {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Data — Log Analytics
+// ═══════════════════════════════════════════════════════════════════════════
 module logModule 'Data/log.bicep' = {
   name: 'log'
   params: {
     environmentName: environmentName
     projectName: projectName
     logWorkspaceName: logWorkspaceName
-    logCapacityPerDay: 1
+    logCapacityPerDay: logCapacityPerDay
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Data — Storage
+// ═══════════════════════════════════════════════════════════════════════════
 module storageModule 'Data/storage.bicep' = {
   name: 'storage'
   params: {
     environmentName: environmentName
     projectName: projectName
-    vnetName: vnetName
+    vnetName: networkModule.outputs.vnetName
     peSubnetName: peSubnetName
     storageAccountName: storageAccountName
-    logWorkspaceName: logWorkspaceName
+    logWorkspaceName: logModule.outputs.logWorkspaceName
   }
-  dependsOn: [networkModule, logModule]
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Data — Key Vault
+// ═══════════════════════════════════════════════════════════════════════════
 module vaultModule 'Data/keyvault.bicep' = {
   name: 'vault'
   params: {
     environmentName: environmentName
     projectName: projectName
-    vnetName: vnetName
+    vnetName: networkModule.outputs.vnetName
     peSubnetName: peSubnetName
     keyVaultName: keyVaultName
-    logWorkspaceName: logWorkspaceName
+    logWorkspaceName: logModule.outputs.logWorkspaceName
   }
-  dependsOn: [networkModule, logModule]
 }
 
 module vaultSecretModule 'Data/keyvault-secret.bicep' = {
+  name: 'vaultSecrets'
   params: {
-    keyVaultName: keyVaultName
-    secretNames: ['cosmosdb-account', 'cosmosdb-database']
-    secretValues: [cosmosName, projectName]
+    keyVaultName: vaultModule.outputs.keyVaultName
+    secretNames: enableCosmos ? ['cosmosdb-account', 'cosmosdb-database'] : []
+    secretValues: enableCosmos ? [cosmosName, projectName] : []
   }
-  dependsOn: [vaultModule]
 }
 
-module cosmosModule 'Data/cosmosdb.bicep' = {
+// ═══════════════════════════════════════════════════════════════════════════
+// Data — Cosmos DB (optional)
+// ═══════════════════════════════════════════════════════════════════════════
+module cosmosModule 'Data/cosmosdb.bicep' = if (enableCosmos) {
+  name: 'cosmos'
   params: {
     accountName: cosmosName
     containerName: cosmosContainerName
@@ -101,31 +175,55 @@ module cosmosModule 'Data/cosmosdb.bicep' = {
     peSubnetName: peSubnetName
     projectName: projectName
     useFreeTier: cosmosUseFreeTier
-    vnetName: vnetName
-    logWorkspaceName: logWorkspaceName
+    vnetName: networkModule.outputs.vnetName
+    logWorkspaceName: logModule.outputs.logWorkspaceName
   }
-  dependsOn: [networkModule, logModule]
 }
 
-module netfaModule 'Apps/dotnet-functionapp-mi.bicep' = {
+// ═══════════════════════════════════════════════════════════════════════════
+// Data — Service Bus (optional)
+// ═══════════════════════════════════════════════════════════════════════════
+module serviceBusModule 'Data/servicebus.bicep' = if (enableServiceBus) {
+  name: 'servicebus'
+  params: {
+    namespaceName: serviceBusName
+    environmentName: environmentName
+    projectName: projectName
+    vnetName: networkModule.outputs.vnetName
+    peSubnetName: peSubnetName
+    logWorkspaceName: logModule.outputs.logWorkspaceName
+    skuName: serviceBusSku
+    queueNames: serviceBusQueues
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Apps — Function App (optional, unified module)
+// ═══════════════════════════════════════════════════════════════════════════
+module netfaModule 'Modules/functionapp.bicep' = if (enableFunctionApp) {
   name: 'netfa'
   params: {
     environmentName: environmentName
     projectName: projectName
-    vnetName: vnetName
-    keyVaultName: keyVaultName
+    vnetName: networkModule.outputs.vnetName
+    keyVaultName: vaultModule.outputs.keyVaultName
     faSubnetName: faSubnetName
     appName: projectName
-    functionAppRuntime: 'dotnet-isolated'
-    functionAppRuntimeVersion: '8.0'
-    logWorkspaceName: logWorkspaceName
-    storageAccountName: storageAccountName
+    functionAppRuntime: functionAppRuntime
+    functionAppRuntimeVersion: functionAppRuntimeVersion
+    logWorkspaceName: logModule.outputs.logWorkspaceName
+    storageAccountName: storageModule.outputs.storageAccountName
     appSettings: functionAppSettings
+    identityType: functionAppIdentityType
+    cosmosAccountName: enableCosmos ? cosmosModule.outputs.cosmosAccountName : ''
+    serviceBusNamespaceName: enableServiceBus ? serviceBusModule.outputs.serviceBusNamespaceName : ''
   }
-  dependsOn: [networkModule, storageModule, logModule]
 }
 
-module frontdoorModule './Security/frontdoor.bicep' = { // Can be removed if front door is not needed
+// ═══════════════════════════════════════════════════════════════════════════
+// Security — Front Door (optional)
+// ═══════════════════════════════════════════════════════════════════════════
+module frontdoorModule './Security/frontdoor.bicep' = if (enableFrontDoor) {
   name: 'frontdoor'
   params: {
     frontDoorName: frontDoorName
@@ -135,25 +233,28 @@ module frontdoorModule './Security/frontdoor.bicep' = { // Can be removed if fro
   }
 }
 
-module netappModule 'Apps/dotnet-appservice-portal-frontdoor.bicep' = { // -frontdoor can be removed if front door is not needed
+// ═══════════════════════════════════════════════════════════════════════════
+// Apps — App Service (optional, unified module)
+// ═══════════════════════════════════════════════════════════════════════════
+module netappModule 'Modules/appservice.bicep' = if (enableAppService) {
+  name: 'netapp'
   params: {
     appName: projectName
-    appRuntimeVersion: 'v8.0'
+    appRuntimeVersion: appServiceRuntimeVersion
     environmentName: environmentName
-    keyVaultName: keyVaultName
-    logWorkspaceName: logWorkspaceName
+    keyVaultName: vaultModule.outputs.keyVaultName
+    logWorkspaceName: logModule.outputs.logWorkspaceName
     projectName: projectName
-    vnetName: vnetName
+    vnetName: networkModule.outputs.vnetName
     webSubnetName: webSubnetName
     authClientId: authClientId
     authClientSecret: authClientSecret
-    frontDoorId: frontdoorModule.outputs.frontDoorId
-    frontDoorUrl: frontdoorModule.outputs.frontDoorUrl
+    frontDoorId: enableFrontDoor ? frontdoorModule.outputs.frontDoorId : ''
+    frontDoorUrl: enableFrontDoor ? frontdoorModule.outputs.frontDoorUrl : ''
   }
-  dependsOn: [networkModule, storageModule, logModule, vaultModule]
 }
 
-module frontdoorOriginModule './Security/frontdoor-origin.bicep' = { // Can be removed if front door is not needed
+module frontdoorOriginModule './Security/frontdoor-origin.bicep' = if (enableFrontDoor && enableAppService) {
   name: 'frontDoorOrigin'
   params: {
     appHostName: netappModule.outputs.appServiceHostName
@@ -165,7 +266,11 @@ module frontdoorOriginModule './Security/frontdoor-origin.bicep' = { // Can be r
   }
 }
 
-module actionGroup 'Alerts/actiongroup.bicep' = {
+// ═══════════════════════════════════════════════════════════════════════════
+// Alerts (optional)
+// ═══════════════════════════════════════════════════════════════════════════
+module actionGroup 'Alerts/actiongroup.bicep' = if (enableAlerts) {
+  name: 'actionGroup'
   params: {
     actionGroupEmailAddress: actionGroupEmailAddress
     actionGroupName: actionGroupName
@@ -175,7 +280,8 @@ module actionGroup 'Alerts/actiongroup.bicep' = {
   }
 }
 
-module logalertNetFaModule 'Alerts/logalert-appinsights.bicep' = {
+module logalertNetFaModule 'Alerts/logalert-appinsights.bicep' = if (enableAlerts && enableFunctionApp) {
+  name: 'logalertNetFa'
   params: {
     actionGroupName: actionGroupName
     alertRuleName: 'ar-${netfaModule.outputs.functionAppName}-failures'
@@ -186,10 +292,10 @@ module logalertNetFaModule 'Alerts/logalert-appinsights.bicep' = {
     environmentName: environmentName
     projectName: projectName
   }
-  dependsOn: [actionGroup]
 }
 
-module logalertAppFaModule 'Alerts/logalert-appinsights.bicep' = {
+module logalertAppFaModule 'Alerts/logalert-appinsights.bicep' = if (enableAlerts && enableAppService) {
+  name: 'logalertApp'
   params: {
     actionGroupName: actionGroupName
     alertRuleName: 'ar-${netappModule.outputs.appServiceName}-failures'
@@ -200,10 +306,10 @@ module logalertAppFaModule 'Alerts/logalert-appinsights.bicep' = {
     environmentName: environmentName
     projectName: projectName
   }
-  dependsOn: [actionGroup]
 }
 
-module activityAlertModule 'Alerts/activityalert-servicehealth.bicep' = {
+module activityAlertModule 'Alerts/activityalert-servicehealth.bicep' = if (enableAlerts) {
+  name: 'activityAlert'
   params: {
     actionGroupName: actionGroupName
     alertRuleName: 'ar-${projectName}-servicehealth'

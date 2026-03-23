@@ -188,3 +188,6 @@ resource diagnosticsettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-pr
     ]
   }
 }
+
+output cosmosAccountId string = cosmos.id
+output cosmosAccountName string = cosmos.name
