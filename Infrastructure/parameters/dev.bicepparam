@@ -4,7 +4,7 @@ using '../main.bicep'
 // Development environment parameters
 // ═══════════════════════════════════════════════════════════════════════════
 
-param projectName = 'broth123'
+param projectName = 'myproject'
 param environmentName = 'Development'
 
 // ── Feature flags ──
